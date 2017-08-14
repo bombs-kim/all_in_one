@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Log-in{% endblock %}
+
+{% block content %}
+    <h1>로그인</h1>
+    {% if form.Errors %}
+        <p>틀린 유저정보입니다. 다시 입력해 주세요.</p>
+    {% endif %}
+    <div class="login-form">
+        <form action="{% url 'login' %}" method="post">
+            {{ form.as_p }}
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <p><input type="submit" value="로그인"></p>
+        </form>
+    </div>
+{% endblock %}
