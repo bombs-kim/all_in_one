@@ -1,3 +1,11 @@
 from django.contrib import admin
+from .models import Master, Account
 
-# Register your models here.
+class MasterAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'nickname']
+
+class AccountAdmin(admin.ModelAdmin):
+    list_display = ['master', 'site', 'username', 'password']
+
+admin.site.register(Master, MasterAdmin)
+admin.site.register(Account, AccountAdmin)

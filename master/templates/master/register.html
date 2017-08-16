@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %} 마스터 계정 만들기 {% endblock %}
+
+{% block content %}
+    <form action="." method="post">
+        {{ reg_form.as_p }}
+        {% csrf_token %}
+        <p><input type="submit" value="Submit"></p>
+    </form>
+{% endblock %}

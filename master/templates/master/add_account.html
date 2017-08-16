@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %} 각 몰 계정 정보 추가 {% endblock %}
+
+{% block content %}
+    <form action="." method="post">
+        {{ account_form.as_p }}
+        {% csrf_token %}
+        <p><input type="submit" value="Submit"></p>
+    </form>
+{% endblock %}

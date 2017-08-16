@@ -8,6 +8,8 @@ urlpatterns = [
     url(r'^register/$', views.register, name='register'),
     # url(r'^edit/$', views.edit, name='edit'),
 
+    url(r'^addaccount/$', views.add_account, name='add_account'),
+
     # login / logout urls
     url(r'^login/$', login,
         {'template_name': 'custom_registration/login.html'},

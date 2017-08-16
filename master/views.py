@@ -1,25 +1,33 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from .forms import MasterRegistrationForm
+from .forms import RegistrationForm, AddAccountForm
+from .models import Master
 
 def register(request):
     if request.method == 'POST':
-        master_form = MasterRegistrationForm(requeset.POST)
-        if master_form.is_valid():
-            # Create a new master without commiting to DB
-            new_master = user_form.save(commit=False)
+        reg_form = RegistrationForm(request.POST)
+        if reg_form.is_valid():
+            # A master will be associated with a user
+            new_master = Master()
+            # Create a new user without commiting to DB
+            new_user = reg_form.save(commit=False)
             # Set a password with a proper encryption scheme
-            new_master.set_password(
-                master_form.cleaned_data['password'])
+            new_user.set_password(
+                reg_form.cleaned_data['password'])
+            new_user.save()
+
+            new_master.user = new_user
+            new_master.nickname = reg_form.cleaned_data['nickname']
             new_master.save()
+
             return render(request,
                           'master/register_done.html',
                           {'new_master': new_master})
     else:
-        master_form = MasterRegistrationForm()
+        reg_form = RegistrationForm()
     return render(request,
                   'master/register.html',
-                  {'master_form': master_form})
+                  {'reg_form': reg_form})
 
 # @login_required
 # def edit(request):
@@ -44,4 +52,21 @@ def register(request):
 
 @login_required
 def dashboard(request):
-    return render(request, 'master/dashboard.html', {'section': 'dashboard'})
+    master = request.user.master
+    accounts = master.accounts.all()
+    return render(request, 'master/dashboard.html',
+                  {'section': 'dashboard',
+                   'accounts': accounts})
+
+@login_required
+def add_account(request):
+    if request.method == 'POST':
+        account_form = AddAccountForm(request.POST)
+        if account_form.is_valid():
+            account = account_form.save(commit=False)
+            account.master = request.user.master
+            account.save()
+    else:
+        account_form = AddAccountForm(request.POST)
+    return render(request, 'master/add_account.html',
+                  {'account_form': account_form})

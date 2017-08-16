@@ -3,8 +3,17 @@
 {% block title %}대시보드{% endblock %}
 
 {% block content %}
-    <h1>대시보드</h1>
-
+    <h1>{{ request.user.username }} 대시보드</h1>
+    <h2>몰 계정 정보</h2>
+    {% for account in accounts %}
+        <div style="width: 200px; float:left">
+            <div>site: {{ account.site }} <br>
+                ID: {{ account.username }} <br>
+                PW: {{ account.password }}
+            </div>
+        </div>
+    {% endfor %}
+    <a href="{% url 'add_account' %}">몰 계정 추가</a>
     {# <p>You can <a href="{% url "edit" %}">edit your profile</a> or#}
     {# <a href="{% url "password_change" %}">change your password</a>.<p>#}
 {% endblock %}

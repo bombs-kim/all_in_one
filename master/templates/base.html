@@ -3,7 +3,7 @@
 <html>
 <head>
     <title>{% block title %}{% endblock %}</title>
-    {# <link href="{% static "css/base.css" %}" rel="stylesheet"> #}
+    <link href="{% static "css/base.css" %}" rel="stylesheet">
 </head>
 <body>
     <div id="header">
@@ -18,7 +18,7 @@
         {% endcomment %}
         <span class="user">
         {% if request.user.is_authenticated %}
-            Hello {{ request.user.username }}, <a href="{% url "logout" %}">로그아웃</a>
+            안녕하세요 {{ request.user.username }}님! <a href="{% url "logout" %}">로그아웃</a>
         {% else %}
             <a href="{% url "login" %}">로그인</a>
         {% endif %}
