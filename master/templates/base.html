@@ -17,10 +17,13 @@
         {% endif %}
         {% endcomment %}
         <span class="user">
+
         {% if request.user.is_authenticated %}
-            안녕하세요 {{ request.user.username }}님! <a href="{% url "logout" %}">로그아웃</a>
+            안녕하세요 {{ request.user.username }}님!
+            <a href="{% url 'dashboard' %}">대시보드가기 || </a>
+            <a href="{% url "logout" %}">로그아웃</a>
         {% else %}
-            <a href="{% url "login" %}">로그인</a>
+            <a href="{% url 'login' %}">로그인</a>
         {% endif %}
         </span>
     </div>

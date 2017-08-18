@@ -4,16 +4,21 @@
 
 {% block content %}
     <h1>{{ request.user.username }} 대시보드</h1>
+
+    <a href="{% url 'info:neworders' %}">
+        <h2>신규주문</h2>
+    </a>
+    ================================================++++++++++
     <h2>몰 계정 정보</h2>
+    <div>
     {% for account in accounts %}
         <div style="width: 200px; float:left">
-            <div>site: {{ account.site }} <br>
-                ID: {{ account.username }} <br>
-                PW: {{ account.password }}
-            </div>
+            site: {{ account.site }} <br>
+            ID: {{ account.userid }} <br>
+            PW: {{ account.password }}
         </div>
     {% endfor %}
-    <a href="{% url 'add_account' %}">몰 계정 추가</a>
-    {# <p>You can <a href="{% url "edit" %}">edit your profile</a> or#}
-    {# <a href="{% url "password_change" %}">change your password</a>.<p>#}
+    </div>
+    <div style="clear: both">
+    </div>
 {% endblock %}

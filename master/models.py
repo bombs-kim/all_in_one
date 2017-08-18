@@ -19,8 +19,8 @@ class Account(models.Model):
 
     master = models.ForeignKey(Master, related_name='accounts')
     site = models.CharField(max_length=100, choices=SITE_CHOICES)
-    username = models.CharField(max_length=150)
+    userid = models.CharField(max_length=150)
     password = models.CharField(max_length=150)
 
     def __str__(self):
-        return '(ID: {})'.format(self.username)
+        return '(ID: {})'.format(self.userid)

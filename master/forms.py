@@ -25,7 +25,7 @@ class RegistrationForm(forms.ModelForm):
 class AddAccountForm(forms.ModelForm):
     class Meta:
         model = Account
-        fields = ('site', 'username', 'password')
+        fields = ('site', 'userid', 'password')
         labels = {
             'site': '사이트',
             'username': '아이디',
