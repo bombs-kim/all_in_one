@@ -3,6 +3,7 @@ import json
 import sys
 from pprint import pprint
 from scrapy.selector import Selector
+from django.utils import timezone
 
 headers = {
     'Origin': 'https://www.esmplus.com',
@@ -17,70 +18,6 @@ headers = {
     'Connection': 'keep-alive',
 }
 
-# 신규주문
-neworder_data = [
-  ('page', '1'),
-  ('limit', '20'),
-  ('siteGbn', '0'),
-  # ('searchAccount', '341270'),
-  ('searchDateType', 'ODD'),    # Ordered Day
-  ('searchSDT', '2017-07-10'),
-  ('searchEDT', '2017-08-10'),
-  ('searchKey', 'ON'),
-  ('searchKeyword', ''),
-  ('searchDistrType', 'AL'),
-  ('searchAllYn', 'Y'),
-  ('SortFeild', 'PayDate'),
-  ('SortType', 'Desc'),
-  ('start', '0'),
-  ('transPolicyNo', '0'),
-]
-
-# 발송처리
-delivery_data = [
-  ('page', '1'),
-  ('limit', '100'),
-  ('siteGbn', '0'),
-  # ('searchAccount', '341270'),
-  ('searchDateType', 'ODD'),
-  ('searchSDT', '2017-05-11'),
-  ('searchEDT', '2017-08-11'),
-  ('searchKey', 'ON'),
-  ('searchKeyword', ''),
-  ('excelInfo', ''),
-  ('searchStatus', '0'),
-  ('searchAllYn', 'Y'),
-  ('SortFeild', 'PayDate'),
-  ('SortType', 'Desc'),
-  ('start', '0'),
-  ('searchOrderType', ''),
-  ('searchDeliveryType', ''),
-  ('searchPaking', 'false'),
-  ('searchDistrType', 'AL'),
-  ('transPolicyNo', '0'),
-]
-
-# 배송중
-sending_data = [
-  ('page', '1'),
-  ('limit', '20'),
-  ('siteGbn', '0'),
-  # ('searchAccount', '341270'),
-  ('searchDateType', 'ODD'),
-  ('searchSDT', '2017-06-11'),
-  ('searchEDT', '2017-08-11'),
-  ('searchKey', 'ON'),
-  ('searchKeyword', ''),
-  ('searchType', '0'),
-  ('excelInfo', 'undefined'),
-  ('searchStatus', '0'),
-  ('searchAllYn', 'N'),
-  ('SortFeild', 'PayDate'),
-  ('SortType', 'Desc'),
-  ('start', '0'),
-  ('searchDistrType', 'AL'),
-]
-
 # Returns account number
 def login(sess, id, pw, site):
     login_data = [
@@ -90,12 +27,11 @@ def login(sess, id, pw, site):
         ('RememberMe', 'true'),
         ('RememberMe', 'false'),
     ]
-
-    if site == "esm":
+    if site == "ESM":
         login_data.append( ('Type', 'E') )
     else:
         login_data.append( ('Type', 'S') )
-        if site == "g":
+        if site == "GMKT":
             login_data.append( ('SiteType', 'GMKT') ) # G market
         else:
             login_data.append( ('SiteType', 'IAC') ) # Auction
@@ -109,10 +45,33 @@ def login(sess, id, pw, site):
     sel = Selector(text=menu_resp.text)
     return sel.xpath("//span[@id='divSellerAcc']//option[1]/@value")[0].extract()  # vulnerable
 
-# To do: add options in search
-def get_neworder(id, pw, site):
+
+# 신규주문
+def get_neworder(id, pw, site="ESM", start=None, end=None,
+                 searchKey='ON', searchKeyword=''):
+    start = str(start) if start else (timezone.now() -
+          timezone.timedelta(days=30)).strftime("%Y-%m-%d")
+    end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
+
     with requests.Session() as sess:
         account = login(sess, id, pw, site)
+        neworder_data = [
+          ('page', '1'),
+          ('limit', '20'),
+          ('siteGbn', '0'),
+          # ('searchAccount', '341270'),
+          ('searchDateType', 'ODD'),    # Ordered Day
+          ('searchSDT', start),
+          ('searchEDT', end),
+          ('searchKey', searchKey),
+          ('searchKeyword', searchKeyword),
+          ('searchDistrType', 'AL'),
+          ('searchAllYn', 'Y'),
+          ('SortFeild', 'PayDate'),
+          ('SortType', 'Desc'),
+          ('start', '0'),
+          ('transPolicyNo', '0'),
+        ]
         neworder_data.append( ('searchAccount', account) )
         neworder_resp = sess.post('https://www.esmplus.com/Escrow/Order/NewOrderSearch',
                   headers=headers, data=neworder_data)
@@ -120,15 +79,74 @@ def get_neworder(id, pw, site):
         return json.loads(neworder_resp.text)
 
 
-    # delivery_data.append( ('searchAccount', account) )
-    # sending_data.append( ('searchAccount', account) )
+# 발송대기
+def get_todeliver(id, pw, site="ESM", start=None, end=None,
+                 searchKey='ON', searchKeyword=''):
+    start = str(start) if start else (timezone.now() -
+          timezone.timedelta(days=30)).strftime("%Y-%m-%d")
+    end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
 
-    # 발송처리
-    # delivery_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GeneralDeliverySearch',
-    #           headers=headers, data=delivery_data)
-    # # 배송중
-    # sending_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GetSendingSearch',
-    #           headers=headers, data=sending_data)
+    with requests.Session() as sess:
+        account = login(sess, id, pw, site)
+        todeliver_data = [
+          ('page', '1'),
+          ('limit', '100'),
+          ('siteGbn', '0'),
+          # ('searchAccount', '341270'),
+          ('searchDateType', 'ODD'),
+          ('searchSDT', start),
+          ('searchEDT', end),
+          ('searchKey', searchKey),
+          ('searchKeyword', searchKeyword),
+          ('excelInfo', ''),
+          ('searchStatus', '0'),
+          ('searchAllYn', 'Y'),
+          ('SortFeild', 'PayDate'),
+          ('SortType', 'Desc'),
+          ('start', '0'),
+          ('searchOrderType', ''),
+          ('searchDeliveryType', ''),
+          ('searchPaking', 'false'),
+          ('searchDistrType', 'AL'),
+          ('transPolicyNo', '0'),
+        ]
+        todeliver_data.append( ('searchAccount', account) )
+        todeliver_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GeneralDeliverySearch',
+                      headers=headers, data=todeliver_data)
 
-    # delivery = json.loads(delivery_resp.text)
-    # sending = json.loads(sending_resp.text)
+        return json.loads(todeliver_resp.text)
+
+
+# 배송중
+def get_sending(id, pw, site="ESM", start=None, end=None,
+                 searchKey='ON', searchKeyword=''):
+    start = str(start) if start else (timezone.now() -
+          timezone.timedelta(days=30)).strftime("%Y-%m-%d")
+    end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
+
+    with requests.Session() as sess:
+        account = login(sess, id, pw, site)
+        sending_data = [
+          ('page', '1'),
+          ('limit', '20'),
+          ('siteGbn', '0'),
+          # ('searchAccount', '341270'),
+          ('searchDateType', 'ODD'),
+          ('searchSDT', '2017-06-11'),
+          ('searchEDT', '2017-08-11'),
+          ('searchKey', 'ON'),
+          ('searchKeyword', ''),
+          ('searchType', '0'),
+          ('excelInfo', 'undefined'),
+          ('searchStatus', '0'),
+          ('searchAllYn', 'N'),
+          ('SortFeild', 'PayDate'),
+          ('SortType', 'Desc'),
+          ('start', '0'),
+          ('searchDistrType', 'AL'),
+        ]
+        sending_data.append( ('searchAccount', account) )
+        sending_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GetSendingSearch',
+                  headers=headers, data=sending_data)
+
+        return json.loads(sending_resp.text)
