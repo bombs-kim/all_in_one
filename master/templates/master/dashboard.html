@@ -5,12 +5,9 @@
 {% block content %}
     <h1>{{ request.user.username }} 대시보드</h1>
 
-    <a href="{% url 'info:neworder' %}">
-        <h2>신규주문</h2>
-    </a>
-    <a href="{% url 'info:todeliver' %}">
-        <h2>배송대기</h2>
-    </a>
+    <a href="{% url 'info:neworder' %}"> <h2>신규주문</h2> </a>
+    <a href="{% url 'info:todeliver' %}"> <h2>발송대기</h2> </a>
+    <a href="{% url 'info:sending' %}"> <h2>배송중</h2> </a>
     ================================================++++++++++
     <h2>몰 계정 정보</h2>
     <div>

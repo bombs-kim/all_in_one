@@ -70,28 +70,36 @@ def get_form_and_entries(request, accounts, stage):
 @login_required
 def neworder(request):
     accounts = request.user.master.accounts.all()
-    search_form, neworders = get_form_and_entries(
+    search_form, entries = get_form_and_entries(
         request, accounts, "neworder")
     return render(request,
                   'info/neworders.html',
-                  {'neworders': neworders,
+                  {'entries': entries,
                    'search_form': search_form})
 
 
 @login_required
 def todeliver(request):
     accounts = request.user.master.accounts.all()
-    search_form, neworders = get_form_and_entries(
+    search_form, entries = get_form_and_entries(
         request, accounts, "todeliver")
     return render(request,
                   'info/todeliver.html',
-                  {'neworders': neworders,
+                  {'entries': entries,
                    'search_form': search_form})
 
 
 @login_required
 def sending(request):
-    pass
+    accounts = request.user.master.accounts.all()
+    search_form, entries = get_form_and_entries(
+        request, accounts, "sending")
+    pprint(entries)
+    return render(request,
+                  'info/todeliver.html',
+                  {'entries': entries,
+                   'search_form': entries})
+
 
 
 @login_required

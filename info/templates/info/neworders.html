@@ -26,6 +26,7 @@
     $(function() {
          $('#confirm').ajaxForm(function() {
              alert("주문확인 성공.");
+             location.reload();
          });
      });
     </script>
@@ -56,30 +57,30 @@
                 <th>수취인CP</th>
                 <th>수취인HT</th>
             </tr>
-            {% for order in neworders %}
+            {% for entry in entries %}
             <tr>
                 <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
-                    value="{{ order.site__ }}/{{ order.SellerID }}/{{ order.orderInfo }}"></td>
-                <td> {{ order.site__ }}</td>
+                    value="{{ entry.site__ }}/{{ entry.SellerID }}/{{ entry.orderInfo }}"></td>
+                <td> {{ entry.site__ }}</td>
 
-                <td>{{ order.SellerID }}</td>
-                <td>{{ order.orderInfo }}</td>
+                <td>{{ entry.SellerID }}</td>
+                <td>{{ entry.orderInfo }}</td>
 
-                <td>{{ order.BuyerCp }}</td>
-                <td>{{ order.BuyerHt }}</td>
-                <td>{{ order.BuyerID }}</td>
-                <td>{{ order.BuyerName }}</td>
+                <td>{{ entry.BuyerCp }}</td>
+                <td>{{ entry.BuyerHt }}</td>
+                <td>{{ entry.BuyerID }}</td>
+                <td>{{ entry.BuyerName }}</td>
 
-                <td>{{ order.GoodsName | safe}}</td>
-                <td>{{ order.GoodsNo }}</td>
-                <td>{{ order.CartNo }}</td>
-                <td>{{ order.SellPrice }}</td>
-                <td>{{ order.DepositConfirmDate }}</td>
+                <td>{{ entry.GoodsName | safe}}</td>
+                <td>{{ entry.GoodsNo }}</td>
+                <td>{{ entry.CartNo }}</td>
+                <td>{{ entry.SellPrice }}</td>
+                <td>{{ entry.DepositConfirmDate }}</td>
 
-                <td>{{ order.DeliveryFeeType }}</td>
-                <td style="min-width:200px">{{ order.RcverInfoAd | safe}}</td>
-                <td>{{ order.RcverInfoCp }}</td>
-                <td>{{ order.RcverInfoHt }}</td>
+                <td>{{ entry.DeliveryFeeType }}</td>
+                <td style="min-width:200px">{{ entry.RcverInfoAd | safe}}</td>
+                <td>{{ entry.RcverInfoCp }}</td>
+                <td>{{ entry.RcverInfoHt }}</td>
             </tr>
             {% endfor %}
         </table>
