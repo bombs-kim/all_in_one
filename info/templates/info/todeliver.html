@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %} 신규주문 조회 {% endblock %}
+{% block title %} 배송대기 조회 {% endblock %}
 
 {% block content %}
     <style>
         table, td, th{
             border: 1px solid black;
         }
-        td,th{
+        th{
             min-width: 110px;
             text-align: right;
         }
@@ -15,63 +15,163 @@
     </style>
     <div id="search">
         <form action="." method="post">
-            {{ search_form.as_table }}
+            {{ search_form.as_p }}
 
             {% csrf_token %}
             <input type="submit" value="Search">
         </form>
     </div>
-    <table>
-        <tr>
-            <th>사이트</th>
+    <script>
+    $(function() {
+        $('#confirm').on('submit', function(e){
+            console.log(e)
+            e.preventDefault();
+            var orderInfo_invoice = $("input:checked").parents("tr").find("input").serialize();
+            var company = $("input:checked").parents("tr").find("select").serialize();
+            var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
+            console.log(orderInfo_invoice + "&" + company + "&" + csrf);
+            $.post({
+                    url: "{% url 'info:todeliver_confirm' %}",
+                    data: orderInfo_invoice + "&" + company + "&" + csrf,
+                    success: function(result,status,xhr) {
+                        if (result['status'] === "ok"){ alert("배송등록 성공"); location.reload(); }
+                        else { alert(result['msg']); location.reload(); }
+                    },
+            });
+        });
+     });
+    </script>
+    <form id="confirm" action="" method="post">
+        <input type="submit" value="배송처리">
+        {% csrf_token %}
+        <table>
+            <tr>
+                <th style="min-width:30px">선택</th>
+                <th>사이트</th>
+                <th>ID</th>
 
-            <th>mID</th>
-            <th>orderInfo</th>
+                <th>택배사 선택</th>
+                <th>송장번호</th>
 
-            <th>CP</th>
-            <th>HT</th>
-            <th>구매자ID</th>
-            <th>구매자</th>
+                <th>CP</th>
+                <th>HT</th>
+                <th>구매자ID</th>
+                <th>구매자</th>
 
-            <th>상품명</th>
-            <th>상품번호</th>
-            <th>카트번호</th>
-            <th>판매가</th>
-            <th>입금일</th>
+                <th>상품명</th>
+                <th>상품번호</th>
+                <th>카트번호</th>
+                <th>판매가</th>
+                <th>입금일</th>
 
-            <th>배송타입</th>
-            <th>배송주소</th>
-            <th>수취인CP</th>
-            <th>수취인HT</th>
+                <th>배송타입</th>
+                <th>배송주소</th>
+                <th>수취인CP</th>
+                <th>수취인HT</th>
+            </tr>
+            {% for order in neworders %}
+            <tr>
+                <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
+                    value="{{ order.site__ }}/{{ order.SellerID }}/{{ order.OrderNo }}"></td>
+                <td> {{ order.site__ }}</td>
+                <td>{{ order.SellerID }}</td>
 
-            <th>판매자 아이디</th>
-        </tr>
-        {% for order in neworders %}
-        <tr>
-            <td>{{ order.site__ }}</td>
+                <td>
+                    <select name="company">
+                        <option value="10013">CJ택배</option>
+                        <option value="10001">대한통운</option>
+                        <option value="10007">한진택배</option>
+                        <option value="10005">우체국택배</option>
+                        <option value="10008">롯데택배</option>
+                        <option value="10075">롯데국제특송</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" name="invoiceNo" value="">
+                </td>
 
-            <td>{{ order.mID }}</td>
-            <td>{{ order.orderInfo }}</td>
+                <td>{{ order.BuyerCp }}</td>
+                <td>{{ order.BuyerHt }}</td>
+                <td>{{ order.BuyerID }}</td>
+                <td>{{ order.BuyerName }}</td>
 
-            <td>{{ order.BuyerCp }}</td>
-            <td>{{ order.BuyerHt }}</td>
-            <td>{{ order.BuyerID }}</td>
-            <td>{{ order.BuyerName }}</td>
+                <td>{{ order.GoodsName | safe}}</td>
+                <td>{{ order.GoodsNo }}</td>
+                <td>{{ order.CartNo }}</td>
+                <td>{{ order.SellPrice }}</td>
+                <td>{{ order.DepositConfirmDate }}</td>
 
-            <td>{{ order.GoodsName | safe}}</td>
-            <td>{{ order.GoodsNo }}</td>
-            <td>{{ order.CartNo }}</td>
-            <td>{{ order.SellPrice }}</td>
-            <td>{{ order.DepositConfirmDate }}</td>
-
-            <td>{{ order.DeliveryFeeType }}</td>
-            <td style="min-width:200px">{{ order.RcverInfoAd | safe}}</td>
-            <td>{{ order.RcverInfoCp }}</td>
-            <td>{{ order.RcverInfoHt }}</td>
-
-            <td>{{ order.SellerID }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+                <td>{{ order.DeliveryFeeType }}</td>
+                <td style="min-width:200px">{{ order.RcverInfoAd | safe}}</td>
+                <td>{{ order.RcverInfoCp }}</td>
+                <td>{{ order.RcverInfoHt }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </form>
 
 {% endblock %}
+
+{% comment %}
+<option value="10013">CJ택배</option>
+<option value="10001">대한통운</option>
+<option value="10007">한진택배</option>
+<option value="10005">우체국택배</option>
+<option value="10008">롯데택배</option>
+<option value="10075">롯데국제특송</option>
+<option value="10003">로젠택배</option>
+<option value="10004">KG로지스</option>
+<option value="10073">편의점택배(GS25)</option>
+<option value="10019">GTX로지스</option>
+<option value="10011">하나로택배</option>
+<option value="10015">일양택배</option>
+<option value="10017">천일택배</option>
+<option value="10014">대신택배</option>
+<option value="10016">경동택배</option>
+<option value="10074">합동택배</option>
+<option value="10009">SC로지스</option>
+<option value="10022">DHL</option>
+<option value="10023">FEDEX</option>
+<option value="10072">CJ국제특송</option>
+<option value="10020">한진정기화물</option>
+<option value="10021">OCS KOREA</option>
+<option value="10006">등기우편</option>
+<option value="10024">일반우편</option>
+<option value="10025">퀵서비스</option>
+<option value="10035">방문수령</option>
+<option value="10027">LG전자물류</option>
+<option value="10028">삼성전자물류</option>
+<option value="10029">대우전자물류</option>
+<option value="10076">위니아물류</option>
+<option value="10030">기타가전물류</option>
+<option value="10031">가구직배송</option>
+<option value="10032">자체배송</option>
+<option value="10036">EMS</option>
+<option value="10037">양양택배</option>
+<option value="10038">(소형항공)우체국</option>
+<option value="10040">한국택배</option>
+<option value="10041">USPS</option>
+<option value="10042">UPS</option>
+<option value="10039">호남택배</option>
+<option value="10043">GSMNTON</option>
+<option value="10044">WarpEx</option>
+<option value="10045">성원글로벌</option>
+<option value="10046">하이브랜로지스</option>
+<option value="10047">국제정보통신</option>
+<option value="10048">홈플러스택배</option>
+<option value="10049">영풍문고택배</option>
+<option value="10050">건영택배</option>
+<option value="10051">WIZWA</option>
+<option value="10052">FHL express</option>
+<option value="10053">Airboy express</option>
+<option value="10054">(해외)우체국</option>
+<option value="10055">(해외)DHL</option>
+<option value="10056">(해외)DPD</option>
+<option value="10061">(통합)한진택배</option>
+<option value="10071">(마트)CJ택배</option>
+<option value="10077">SLX</option>
+<option value="10078">동부대우전자</option>
+<option value="10079">범한판토스</option>
+<option value="10080">GPS LOGIX</option>
+<option value="10081">한의사랑택배</option>
+{% endcomment %}

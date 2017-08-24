@@ -7,11 +7,12 @@
         table, td, th{
             border: 1px solid black;
         }
-        td,th{
+        th{
             min-width: 110px;
             text-align: right;
         }
         ul li { display: inline; }
+        select { float: left; }
     </style>
     <div id="search">
         <form action="." method="post">
@@ -21,57 +22,67 @@
             <input type="submit" value="Search">
         </form>
     </div>
-    <table>
-        <tr>
-            <th>사이트</th>
+    <script>
+    $(function() {
+         $('#confirm').ajaxForm(function() {
+             alert("주문확인 성공.");
+         });
+     });
+    </script>
+    <form id="confirm" action="{% url 'info:neworder_confirm' %}" method="post">
+        <input type="submit" value="주문확인">
+        {% csrf_token %}
+        <table>
+            <tr>
+                <th style="min-width:30px">선택</th>
+                <th>사이트</th>
 
-            <th>mID</th>
-            <th>orderInfo</th>
+                <th>ID</th>
+                <th>orderInfo</th>
 
-            <th>CP</th>
-            <th>HT</th>
-            <th>구매자ID</th>
-            <th>구매자</th>
+                <th>CP</th>
+                <th>HT</th>
+                <th>구매자ID</th>
+                <th>구매자</th>
 
-            <th>상품명</th>
-            <th>상품번호</th>
-            <th>카트번호</th>
-            <th>판매가</th>
-            <th>입금일</th>
+                <th>상품명</th>
+                <th>상품번호</th>
+                <th>카트번호</th>
+                <th>판매가</th>
+                <th>입금일</th>
 
-            <th>배송타입</th>
-            <th>배송주소</th>
-            <th>수취인CP</th>
-            <th>수취인HT</th>
+                <th>배송타입</th>
+                <th>배송주소</th>
+                <th>수취인CP</th>
+                <th>수취인HT</th>
+            </tr>
+            {% for order in neworders %}
+            <tr>
+                <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
+                    value="{{ order.site__ }}/{{ order.SellerID }}/{{ order.orderInfo }}"></td>
+                <td> {{ order.site__ }}</td>
 
-            <th>판매자 아이디</th>
-        </tr>
-        {% for order in neworders %}
-        <tr>
-            <td> {{ order.site__ }}</td>
+                <td>{{ order.SellerID }}</td>
+                <td>{{ order.orderInfo }}</td>
 
-            <td>{{ order.mID }}</td>
-            <td>{{ order.orderInfo }}</td>
+                <td>{{ order.BuyerCp }}</td>
+                <td>{{ order.BuyerHt }}</td>
+                <td>{{ order.BuyerID }}</td>
+                <td>{{ order.BuyerName }}</td>
 
-            <td>{{ order.BuyerCp }}</td>
-            <td>{{ order.BuyerHt }}</td>
-            <td>{{ order.BuyerID }}</td>
-            <td>{{ order.BuyerName }}</td>
+                <td>{{ order.GoodsName | safe}}</td>
+                <td>{{ order.GoodsNo }}</td>
+                <td>{{ order.CartNo }}</td>
+                <td>{{ order.SellPrice }}</td>
+                <td>{{ order.DepositConfirmDate }}</td>
 
-            <td>{{ order.GoodsName | safe}}</td>
-            <td>{{ order.GoodsNo }}</td>
-            <td>{{ order.CartNo }}</td>
-            <td>{{ order.SellPrice }}</td>
-            <td>{{ order.DepositConfirmDate }}</td>
-
-            <td>{{ order.DeliveryFeeType }}</td>
-            <td style="min-width:200px">{{ order.RcverInfoAd | safe}}</td>
-            <td>{{ order.RcverInfoCp }}</td>
-            <td>{{ order.RcverInfoHt }}</td>
-
-            <td>{{ order.SellerID }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+                <td>{{ order.DeliveryFeeType }}</td>
+                <td style="min-width:200px">{{ order.RcverInfoAd | safe}}</td>
+                <td>{{ order.RcverInfoCp }}</td>
+                <td>{{ order.RcverInfoHt }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </form>
 
 {% endblock %}

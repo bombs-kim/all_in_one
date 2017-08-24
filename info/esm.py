@@ -70,14 +70,13 @@ def get_neworder(id, pw, site="ESM", start=None, end=None,
           ('SortFeild', 'PayDate'),
           ('SortType', 'Desc'),
           ('start', '0'),
-          ('transPolicyNo', '0'),
+          ('searchTransPolicyType', ''),
         ]
         neworder_data.append( ('searchAccount', mID) )
         neworder_resp = sess.post('https://www.esmplus.com/Escrow/Order/NewOrderSearch',
                   headers=headers, data=neworder_data)
 
         return mID, json.loads(neworder_resp.text)
-
 
 # 발송대기
 def get_todeliver(id, pw, site="ESM", start=None, end=None,
@@ -108,7 +107,7 @@ def get_todeliver(id, pw, site="ESM", start=None, end=None,
           ('searchDeliveryType', ''),
           ('searchPaking', 'false'),
           ('searchDistrType', 'AL'),
-          ('transPolicyNo', '0'),
+          ('searchTransPolicyType', ''),
         ]
         todeliver_data.append( ('searchAccount', mID) )
         todeliver_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GeneralDeliverySearch',
@@ -150,3 +149,24 @@ def get_sending(id, pw, site="ESM", start=None, end=None,
                   headers=headers, data=sending_data)
 
         return account, json.loads(sending_resp.text)
+
+
+def neworder_confirm(id, pw, site, order_info):
+    with requests.Session() as sess:
+        mID = login(sess, id, pw, site)
+        data = {
+            "mID": mID,
+            "orderInfo": order_info,
+        }
+        return sess.post("https://www.esmplus.com/Escrow/Order/OrderCheck",\
+                         data=data)
+
+def todeliver_confirm(id, pw, site, order_info):
+    with requests.Session() as sess:
+        mID = login(sess, id, pw, site)
+        data = {
+            "mID": mID,
+            "deliveryInfo": order_info,
+        }
+        return sess.post("https://www.esmplus.com/Escrow/Delivery/SetDoShippingGeneral",\
+                         data=data)

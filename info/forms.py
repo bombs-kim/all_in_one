@@ -13,8 +13,12 @@ class SearchForm(forms.Form):
         ('ON', '주문번호'),
         ('GM', '상품명')
     ]
+    from django.utils.safestring import mark_safe
+
     search_option = forms.ChoiceField(
         choices=SEARCH_OPTION_CHOICES)
     search_keyword = forms.CharField(max_length=100, required=False)
-    start_date = forms.DateField(initial=default_start)
-    end_date = forms.DateField(initial=default_end)
+    start_date = forms.DateField(initial=default_start,
+                                 widget = forms.SelectDateWidget())
+    end_date = forms.DateField(initial=default_end,
+                               widget = forms.SelectDateWidget())
