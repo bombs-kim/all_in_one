@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %} 신규주문 조회 {% endblock %}
+
+{% block content %}
+    <style>
+        table, td, th{
+            border: 1px solid black;
+        }
+        th{
+            min-width: 110px;
+            text-align: right;
+        }
+        ul li { display: inline; }
+        select { float: left; }
+    </style>
+    <div id="search">
+        <form action="." method="post">
+            {{ search_form.as_table }}
+
+            {% csrf_token %}
+            <input type="submit" value="Search">
+        </form>
+    </div>
+
+    <table>
+        <tr>
+            <th>사이트</th>
+
+            <th>ID</th>
+            <th>orderInfo</th>
+
+            <th>CP</th>
+            <th>HT</th>
+            <th>구매자ID</th>
+            <th>구매자</th>
+
+            <th>상품명</th>
+            <th>상품번호</th>
+            <th>카트번호</th>
+            <th>판매가</th>
+            <th>입금일</th>
+
+            <th>배송타입</th>
+            <th>배송주소</th>
+            <th>수취인CP</th>
+            <th>수취인HT</th>
+        </tr>
+        {% for entry in entries %}
+        <tr>
+            <td> {{ entry.site__ }}</td>
+
+            <td>{{ entry.SellerID }}</td>
+            <td>{{ entry.orderInfo }}</td>
+
+            <td>{{ entry.BuyerCp }}</td>
+            <td>{{ entry.BuyerHt }}</td>
+            <td>{{ entry.BuyerID }}</td>
+            <td>{{ entry.BuyerName }}</td>
+
+            <td>{{ entry.GoodsName | safe}}</td>
+            <td>{{ entry.GoodsNo }}</td>
+            <td>{{ entry.CartNo }}</td>
+            <td>{{ entry.SellPrice }}</td>
+            <td>{{ entry.DepositConfirmDate }}</td>
+
+            <td>{{ entry.DeliveryFeeType }}</td>
+            <td style="min-width:200px">{{ entry.RcverInfoAd | safe}}</td>
+            <td>{{ entry.RcverInfoCp }}</td>
+            <td>{{ entry.RcverInfoHt }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+{% endblock %}
