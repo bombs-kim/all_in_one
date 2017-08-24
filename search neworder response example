@@ -1,0 +1,150 @@
+Cp: BuyerCp
+Ht: BuyerHt
+ID: BuyerID
+Name: BuyerName
+
+GoodsName: GoodsName
+GoodsNo: GoodsNo
+CartNo: CartNo
+SellPrice: SellPrice
+DepositConfirmDate: DepositConfirmDate
+
+DeliveryFeeType: DeliveryFeeType
+RcverAddr: RcverInfoAd
+RcverCp: RcverInfoCp
+RcverHt: RcverInfoHt
+
+SellerID: SellerID
+
+
+
+
+cp = models.CharField(max_length=100)
+ht = models.CharField(max_length=100)
+id = models.CharField(max_length=100)
+name = models.CharField(max_length=100)
+
+goodsName = models.CharField(max_length=100)
+goodsNo = models.CharField(max_length=100)
+price = models.CharField(max_length=100)
+cartNo = models.CharField(max_length=100)
+depositConfirmDate = models.CharField(max_length=100)
+
+deliveryFeetype = models.CharField(max_length=100)
+rcverAddr = models.CharField(max_length=100)
+rcverCp = models.CharField(max_length=100)
+rcverHt = models.CharField(max_length=100)
+
+sellerID = models.CharField(max_length=100)
+
+
+
+
+
+
+
+
+
+
+
+
+{'AddOption': '<span title=""></span>',
+           'BuyDecisionDate': None,
+           'BuyerCp': '010-4571-0793',
+           'BuyerDCAmnt': '0',
+           'BuyerHt': '031-797-1376',
+           'BuyerID': 'zxc****',
+           'BuyerName': '김범수',
+           'CartNo': 4203479316,
+           'ClaimDate': None,
+           'ClaimDetailReason': None,
+           'ClaimObjctnDate': None,
+           'ClaimReason': None,
+           'ClaimRequestDate': None,
+           'DeliveryComp': 0,
+           'DeliveryCompNm': None,
+           'DeliveryFee': '0',
+           'DeliveryFeeType': '선불',
+           'DeliveryFinishDate': None,
+           'DeliveryMemo': '',
+           'DeliveryStatus': None,
+           'DeliveryStatusCode': 0,
+           'DeliveryTypeCode': 'G1',
+           'DeliveryWay': None,
+           'DepositConfirmDate': '2017-08-10 10:07:13',
+           'DistrType': '일반주문',
+           'FreeGift': None,
+           'GatherPlace': None,
+           'GatherPlaceName': None,
+           'GatherPlaceNo': None,
+           'GepLabelPrintDate': None,
+           'GlobalShopType': None,
+           'GoodsName': '<span title="의류테스트">의류테스트</span>',
+           'GoodsNo': '1104460331',
+           'GoodsSizeDesc': None,
+           'GreatMembDcAmnt': None,
+           'InvoiceNo': None,
+           'LabelPrintDate': None,
+           'MarketType': None,
+           'MultiBuyDcAmnt': None,
+           'OrderAmnt': '100',
+           'OrderConfirmDate': None,
+           'OrderDate': '2017-08-10 10:07:11',
+           'OrderNo': 1996001719,
+           'OrderQty': 1,
+           'OverseaDeliveryYN': None,
+           'PackingCount': 0,
+           'PackingQty': 0,
+           'PartnerName': None,
+           'PayDate': '2017-08-10 10:07:12',
+           'PayExpireDate': None,
+           'PayWayCode': None,
+           'RcverInfoAd': '<span title="서울특별시 성북구 종암로9나길 39 (종암동) B102호">서울특별시 '
+                          '성북구 종암로9나길 39 (종암동) B102호</span>',
+           'RcverInfoCp': '010-4571-0793',
+           'RcverInfoHt': '010-4571-0793',
+           'RcverInfoPacking': None,
+           'RcverName': '김범수',
+           'ReCompName': None,
+           'ReDate': None,
+           'ReInvoiceNo': None,
+           'ReRcverInfoAd': None,
+           'ReZipCode': None,
+           'ReceiverEntryNo': None,
+           'ReceiverSSN': None,
+           'RedeliveryStatus': None,
+           'SelOption': '<span title=""></span>',
+           'SellPrice': '100',
+           'SellerBcashSaveAmnt': None,
+           'SellerCouponDcAmnt': '0',
+           'SellerCustNo': '111421746',
+           'SellerDetailMngCode': None,
+           'SellerID': 'cjfrhs',
+           'SellerMngCode': '<span '
+                            'title="AM105191607303">AM105191607303</span>',
+           'SellerPointDcAmnt': None,
+           'SellerSmileCashAmnt': None,
+           'SendProcessGbn': None,
+           'ServiceUseAmnt': '12',
+           'SettleFinishDate': None,
+           'SettleStatus': None,
+           'ShopTypeName': '',
+           'SinglePayDcAmnt': None,
+           'SiteID': '<strong class="c_018f10">G</strong>(cjfrhs)',
+           'SiteIDValue': '2',
+           'SiteOrderNo': 2545936739,
+           'SkuString': '<span title=""></span>',
+           'SkuStringNoFormat': None,
+           'SttlExpectedAmnt': '88',
+           'SupplyPrice': '88',
+           'TotalCnt': 0,
+           'TradeAmnt': None,
+           'TransDate': None,
+           'TransDueDate': '2017-09-09 23:59:59',
+           'TransDueStatus': None,
+           'TransNo': '',
+           'TransScheduledDate': None,
+           'TransScheduledReason': None,
+           'TransType': '발송일미정',
+           'ZipCode': '02809',
+           'trStyle': None}
