@@ -19,16 +19,16 @@ def add_extra_info(entries, site):
 def get_entries(account, stage, start=None, end=None,
                  searchKey='ON', searchKeyword=''):
     if account.site in ('ESM', 'GMKT', 'AUC'):
-        handlers = {
-            "neworder": esm.get_neworder,
-            "todeliver": esm.get_todeliver,
-            "sending": esm.get_sending
-        }
-        if stage not in handlers:
-            print("Error")
-            return
-        mID, entries = handlers[stage](
-            account.userid, account.password, account.site,
+        # handlers = {
+        #     "neworder": esm.get_neworder,
+        #     "todeliver": esm.get_todeliver,
+        #     "sending": esm.get_sending
+        # }
+        # if stage not in handlers:
+        #     print("Error")
+        #     return
+        mID, entries = esm.search(
+            account.userid, account.password, stage, account.site,
             start, end, searchKey, searchKeyword)
         entries = entries['data']
 
@@ -94,13 +94,28 @@ def sending(request):
     accounts = request.user.master.accounts.all()
     search_form, entries = get_form_and_entries(
         request, accounts, "sending")
-    pprint(entries)
     return render(request,
-                  'info/todeliver.html',
+                  'info/sending.html',
                   {'entries': entries,
-                   'search_form': entries})
+                   'search_form': search_form})
 
+def toreturn(request):
+    accounts = request.user.master.accounts.all()
+    search_form, entries = get_form_and_entries(
+        request, accounts, "toreturn")
+    return render(request,
+                  'info/toreturn.html',
+                  {'entries': entries,
+                   'search_form': search_form})
 
+def toexchange(request):
+    accounts = request.user.master.accounts.all()
+    search_form, entries = get_form_and_entries(
+        request, accounts, "toexchange")
+    return render(request,
+                  'info/toexchange.html',
+                  {'entries': entries,
+                   'search_form': search_form})
 
 @login_required
 @require_POST

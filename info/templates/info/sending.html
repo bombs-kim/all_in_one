@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %} 신규주문 조회 {% endblock %}
+{% block title %} 배송중 {% endblock %}
 
 {% block content %}
     <style>
@@ -28,7 +28,9 @@
             <th>사이트</th>
 
             <th>ID</th>
-            <th>orderInfo</th>
+
+            <th>발송일</th>
+            <th>배송상태</th>
 
             <th>CP</th>
             <th>HT</th>
@@ -49,9 +51,10 @@
         {% for entry in entries %}
         <tr>
             <td> {{ entry.site__ }}</td>
-
             <td>{{ entry.SellerID }}</td>
-            <td>{{ entry.orderInfo }}</td>
+
+            <td>{{ entry.TransDate }}</td>
+            <td>{{ entry.DeliveryStatus }}</td>
 
             <td>{{ entry.BuyerCp }}</td>
             <td>{{ entry.BuyerHt }}</td>

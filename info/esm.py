@@ -46,8 +46,120 @@ def login(sess, id, pw, site):
     return sel.xpath("//span[@id='divSellerAcc']//option[1]/@value")[0].extract()  # vulnerable
 
 
-# 신규주문
-def get_neworder(id, pw, site="ESM", start=None, end=None,
+def get_search_condition(stage, start, end, searchKey, searchKeyword):
+    if stage == 'neworder':
+        return [('page', '1'),
+                ('limit', '20'),
+                ('siteGbn', '0'),
+                ('searchDateType', 'ODD'),    # Ordered Day
+                ('searchSDT', start),
+                ('searchEDT', end),
+                ('searchKey', searchKey),
+                ('searchKeyword', searchKeyword),
+                ('searchDistrType', 'AL'),
+                ('searchAllYn', 'Y'),
+                ('SortFeild', 'PayDate'),
+                ('SortType', 'Desc'),
+                ('start', '0'),
+                ('searchTransPolicyType', ''),
+               ]
+    elif stage == 'todeliver':
+        return [('page', '1'),
+                ('limit', '100'),
+                ('siteGbn', '0'),
+                ('searchDateType', 'ODD'),
+                ('searchSDT', start),
+                ('searchEDT', end),
+                ('searchKey', searchKey),
+                ('searchKeyword', searchKeyword),
+                ('excelInfo', ''),
+                ('searchStatus', '0'),
+                ('searchAllYn', 'Y'),
+                ('SortFeild', 'PayDate'),
+                ('SortType', 'Desc'),
+                ('start', '0'),
+                ('searchOrderType', ''),
+                ('searchDeliveryType', ''),
+                ('searchPaking', 'false'),
+                ('searchDistrType', 'AL'),
+                ('searchTransPolicyType', ''),
+               ]
+    elif stage == 'sending':
+        return [('page', '1'),
+                ('limit', '20'),
+                ('siteGbn', '0'),
+                ('searchDateType', 'ODD'),
+                ('searchSDT', start),
+                ('searchEDT', end),
+                ('searchKey', searchKey),
+                ('searchKeyword', searchKeyword),
+                ('searchDistrType', 'AL'),
+                ('searchType', '0'),
+                ('excelInfo', 'undefined'),
+                ('searchStatus', '0'),
+                ('searchAllYn', 'N'),
+                ('SortFeild', 'PayDate'),
+                ('SortType', 'Desc'),
+                ('start', '0'),
+                ('searchTransPolicyType', ''),
+               ]
+    elif stage == "toreturn":
+        return [('page', '1'),
+                ('limit', '100'),
+                ('siteGbn', '1'),
+                # ('searchAccount', 'TA^341270'),
+                ('searchDateType', 'ODD'),
+                ('searchSDT', start),
+                ('searchEDT', end),
+                ('searchType', 'PR'),
+                ('searchKey', searchKey),
+                ('searchKeyword', searchKeyword),
+                ('OrderByType', ''),
+                ('excelInfo', ''),
+                ('searchStatus', 'PR'),
+                ('searchAllYn', 'N'),
+                ('tabGbn', 1),
+                ('SortFeild', 'PayDate'),
+                ('SortType', 'Desc'),
+                ('start', '0'),
+                ('searchDistrType', 'AL'),
+                ('searchRewardStatus', 'NN'),
+                ('searchFastRefundYn', ''),
+               ]
+    elif stage == "toexchange":
+        return [('page', '1'),
+                ('limit', '100'),
+                ('siteGbn', '1'),
+                ('searchDateType', ''),
+                ('searchSDT', start),
+                ('searchEDT', end),
+                ('searchType', ''),
+                ('searchKey', searchKey),
+                ('searchKeyword', searchKeyword),
+                ('orderByType', ''),
+                ('excelInfo', ''),
+                ('searchStatus', ''),
+                ('searchAllYn', 'N'),
+                ('tabGbn', '1'),
+                ('SortFeild', 'PayDate'),
+                ('SortType', 'Desc'),
+                ('claimCount', '-'),
+                ('start', '0'),
+                ('searchDistrType', 'AL'),
+               ]
+    return None
+
+
+search_urls = {
+    'neworder': 'https://www.esmplus.com/Escrow/Order/NewOrderSearch',
+    'todeliver': 'https://www.esmplus.com/Escrow/Delivery/GeneralDeliverySearch',
+    'sending': 'https://www.esmplus.com/Escrow/Delivery/GetSendingSearch',
+    'toreturn': 'https://www.esmplus.com/Escrow/Claim/ReturnManagementSearch',
+    'toexchange': 'https://www.esmplus.com/Escrow/Claim/ExchangeManagementSearch',
+}
+
+
+def search(id, pw, stage, site, start, end,
                  searchKey='ON', searchKeyword=''):
     start = str(start) if start else (timezone.now() -
           timezone.timedelta(days=30)).strftime("%Y-%m-%d")
@@ -55,100 +167,14 @@ def get_neworder(id, pw, site="ESM", start=None, end=None,
 
     with requests.Session() as sess:
         mID = login(sess, id, pw, site)
-        neworder_data = [
-          ('page', '1'),
-          ('limit', '20'),
-          ('siteGbn', '0'),
-          # ('searchAccount', '341270'),
-          ('searchDateType', 'ODD'),    # Ordered Day
-          ('searchSDT', start),
-          ('searchEDT', end),
-          ('searchKey', searchKey),
-          ('searchKeyword', searchKeyword),
-          ('searchDistrType', 'AL'),
-          ('searchAllYn', 'Y'),
-          ('SortFeild', 'PayDate'),
-          ('SortType', 'Desc'),
-          ('start', '0'),
-          ('searchTransPolicyType', ''),
-        ]
-        neworder_data.append( ('searchAccount', mID) )
-        neworder_resp = sess.post('https://www.esmplus.com/Escrow/Order/NewOrderSearch',
-                  headers=headers, data=neworder_data)
-
-        return mID, json.loads(neworder_resp.text)
-
-# 발송대기
-def get_todeliver(id, pw, site="ESM", start=None, end=None,
-                 searchKey='ON', searchKeyword=''):
-    start = str(start) if start else (timezone.now() -
-          timezone.timedelta(days=30)).strftime("%Y-%m-%d")
-    end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
-
-    with requests.Session() as sess:
-        mID = login(sess, id, pw, site)
-        todeliver_data = [
-          ('page', '1'),
-          ('limit', '100'),
-          ('siteGbn', '0'),
-          # ('searchAccount', '341270'),
-          ('searchDateType', 'ODD'),
-          ('searchSDT', start),
-          ('searchEDT', end),
-          ('searchKey', searchKey),
-          ('searchKeyword', searchKeyword),
-          ('excelInfo', ''),
-          ('searchStatus', '0'),
-          ('searchAllYn', 'Y'),
-          ('SortFeild', 'PayDate'),
-          ('SortType', 'Desc'),
-          ('start', '0'),
-          ('searchOrderType', ''),
-          ('searchDeliveryType', ''),
-          ('searchPaking', 'false'),
-          ('searchDistrType', 'AL'),
-          ('searchTransPolicyType', ''),
-        ]
-        todeliver_data.append( ('searchAccount', mID) )
-        todeliver_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GeneralDeliverySearch',
-                      headers=headers, data=todeliver_data)
-
-        return mID, json.loads(todeliver_resp.text)
-
-
-# 배송중
-def get_sending(id, pw, site="ESM", start=None, end=None,
-                 searchKey='ON', searchKeyword=''):
-    start = str(start) if start else (timezone.now() -
-          timezone.timedelta(days=30)).strftime("%Y-%m-%d")
-    end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
-
-    with requests.Session() as sess:
-        mID = login(sess, id, pw, site)
-        sending_data = [
-          ('page', '1'),
-          ('limit', '20'),
-          ('siteGbn', '0'),
-          # ('searchAccount', '341270'),
-          ('searchDateType', 'ODD'),
-          ('searchSDT', start),
-          ('searchEDT', end),
-          ('searchKey', searchKey),
-          ('searchKeyword', searchKeyword),
-          ('searchType', '0'),
-          ('excelInfo', 'undefined'),
-          ('searchStatus', '0'),
-          ('searchAllYn', 'N'),
-          ('SortFeild', 'PayDate'),
-          ('SortType', 'Desc'),
-          ('start', '0'),
-          ('searchDistrType', 'AL'),
-        ]
-        sending_data.append( ('searchAccount', mID) )
-        sending_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GetSendingSearch',
-                  headers=headers, data=sending_data)
-
-        return mID, json.loads(sending_resp.text)
+        data = get_search_condition(stage, start, end, searchKey, searchKeyword)
+        if stage in ("toreturn", "toexchange"):
+            data.append( ('searchAccount', "TA^" + mID) )
+        else:
+            data.append( ('searchAccount', mID) )
+        resp = sess.post(search_urls[stage],
+                  headers=headers, data=data)
+        return mID, json.loads(resp.text)
 
 
 def neworder_confirm(id, pw, site, order_info):
@@ -170,3 +196,109 @@ def todeliver_confirm(id, pw, site, order_info):
         }
         return sess.post("https://www.esmplus.com/Escrow/Delivery/SetDoShippingGeneral",\
                          data=data)
+
+
+#
+#
+# def get_neworder(id, pw, site, start=None, end=None,
+#                  searchKey='ON', searchKeyword=''):
+#     start = str(start) if start else (timezone.now() -
+#           timezone.timedelta(days=30)).strftime("%Y-%m-%d")
+#     end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
+#
+#     with requests.Session() as sess:
+#         mID = login(sess, id, pw, site)
+#         neworder_data = [
+#           ('page', '1'),
+#           ('limit', '20'),
+#           ('siteGbn', '0'),
+#           # ('searchAccount', '341270'),
+#           ('searchDateType', 'ODD'),    # Ordered Day
+#           ('searchSDT', start),
+#           ('searchEDT', end),
+#           ('searchKey', searchKey),
+#           ('searchKeyword', searchKeyword),
+#           ('searchDistrType', 'AL'),
+#           ('searchAllYn', 'Y'),
+#           ('SortFeild', 'PayDate'),
+#           ('SortType', 'Desc'),
+#           ('start', '0'),
+#           ('searchTransPolicyType', ''),
+#         ]
+#         neworder_data.append( ('searchAccount', mID) )
+#         neworder_resp = sess.post('https://www.esmplus.com/Escrow/Order/NewOrderSearch',
+#                   headers=headers, data=neworder_data)
+#
+#         return mID, json.loads(neworder_resp.text)
+#
+# # 발송대기
+# def get_todeliver(id, pw, site, start=None, end=None,
+#                  searchKey='ON', searchKeyword=''):
+#     start = str(start) if start else (timezone.now() -
+#           timezone.timedelta(days=30)).strftime("%Y-%m-%d")
+#     end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
+#
+#     with requests.Session() as sess:
+#         mID = login(sess, id, pw, site)
+#         todeliver_data = [
+#           ('page', '1'),
+#           ('limit', '100'),
+#           ('siteGbn', '0'),
+#           # ('searchAccount', '341270'),
+#           ('searchDateType', 'ODD'),
+#           ('searchSDT', start),
+#           ('searchEDT', end),
+#           ('searchKey', searchKey),
+#           ('searchKeyword', searchKeyword),
+#           ('excelInfo', ''),
+#           ('searchStatus', '0'),
+#           ('searchAllYn', 'Y'),
+#           ('SortFeild', 'PayDate'),
+#           ('SortType', 'Desc'),
+#           ('start', '0'),
+#           ('searchOrderType', ''),
+#           ('searchDeliveryType', ''),
+#           ('searchPaking', 'false'),
+#           ('searchDistrType', 'AL'),
+#           ('searchTransPolicyType', ''),
+#         ]
+#         todeliver_data.append( ('searchAccount', mID) )
+#         todeliver_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GeneralDeliverySearch',
+#                       headers=headers, data=todeliver_data)
+#
+#         return mID, json.loads(todeliver_resp.text)
+#
+#
+# # 배송중
+# def get_sending(id, pw, site, start=None, end=None,
+#                  searchKey='ON', searchKeyword=''):
+#     start = str(start) if start else (timezone.now() -
+#           timezone.timedelta(days=30)).strftime("%Y-%m-%d")
+#     end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
+#
+#     with requests.Session() as sess:
+#         mID = login(sess, id, pw, site)
+#         data = [
+#           ('page', '1'),
+#           ('limit', '20'),
+#           ('siteGbn', '0'),
+#           # ('searchAccount', '341270'),
+#           ('searchDateType', 'ODD'),
+#           ('searchSDT', start),
+#           ('searchEDT', end),
+#           ('searchKey', searchKey),
+#           ('searchKeyword', searchKeyword),
+#           ('searchDistrType', 'AL'),
+#           ('searchType', '0'),
+#           ('excelInfo', 'undefined'),
+#           ('searchStatus', '0'),
+#           ('searchAllYn', 'N'),
+#           ('SortFeild', 'PayDate'),
+#           ('SortType', 'Desc'),
+#           ('start', '0'),
+#           ('searchTransPolicyType', ''),
+#         ]
+#         data.append( ('searchAccount', mID) )
+#         sending_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GetSendingSearch',
+#                   headers=headers, data=data)
+#         return mID, json.loads(sending_resp.text)
