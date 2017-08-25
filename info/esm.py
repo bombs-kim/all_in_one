@@ -1,6 +1,8 @@
-import requests
+import io
 import json
+import requests
 import sys
+from lxml.html import parse, submit_form
 from pprint import pprint
 from scrapy.selector import Selector
 from django.utils import timezone
@@ -16,6 +18,7 @@ headers = {
     'Cache-Control': 'max-age=0',
     # 'Referer': 'https://www.esmplus.com/Member/SignIn/LogOn?ReturnValue=-7',
     'Connection': 'keep-alive',
+    # 'X-Requested-With': 'XMLHttpRequest'
 }
 
 # Returns account number
@@ -105,18 +108,17 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
                ]
     elif stage == "toreturn":
         return [('page', '1'),
-                ('limit', '100'),
+                ('limit', '20'),
                 ('siteGbn', '1'),
-                # ('searchAccount', 'TA^341270'),
-                ('searchDateType', 'ODD'),
+                ('searchDateType', ''),
                 ('searchSDT', start),
                 ('searchEDT', end),
-                ('searchType', 'PR'),
+                ('searchType', 'RR'),
                 ('searchKey', searchKey),
                 ('searchKeyword', searchKeyword),
                 ('OrderByType', ''),
                 ('excelInfo', ''),
-                ('searchStatus', 'PR'),
+                ('searchStatus', 'RR'),
                 ('searchAllYn', 'N'),
                 ('tabGbn', 1),
                 ('SortFeild', 'PayDate'),
@@ -138,7 +140,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
                 ('searchKeyword', searchKeyword),
                 ('orderByType', ''),
                 ('excelInfo', ''),
-                ('searchStatus', ''),
+                ('searchStatus', 'EP'), # Somehow you get all types of entries with this
                 ('searchAllYn', 'N'),
                 ('tabGbn', '1'),
                 ('SortFeild', 'PayDate'),
@@ -160,14 +162,15 @@ search_urls = {
 
 
 def search(id, pw, stage, site, start, end,
-                 searchKey='ON', searchKeyword=''):
+                 searchKey, searchKeyword):
     start = str(start) if start else (timezone.now() -
           timezone.timedelta(days=30)).strftime("%Y-%m-%d")
     end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
 
     with requests.Session() as sess:
         mID = login(sess, id, pw, site)
-        data = get_search_condition(stage, start, end, searchKey, searchKeyword)
+        data = get_search_condition(
+            stage, start, end, searchKey, searchKeyword)
         if stage in ("toreturn", "toexchange"):
             data.append( ('searchAccount', "TA^" + mID) )
         else:
@@ -176,6 +179,23 @@ def search(id, pw, stage, site, start, end,
                   headers=headers, data=data)
         return mID, json.loads(resp.text)
 
+
+# confirm_urls = {
+#     'neworder': 'https://www.esmplus.com/Escrow/Order/OrderCheck',
+#     'todeliver': 'https://www.esmplus.com/Escrow/Delivery/SetDoShippingGeneral',
+#     # 'sending': 'https://www.esmplus.com/Escrow/Delivery/GetSendingSearch',
+#     # 'toreturn': 'https://www.esmplus.com/Escrow/Claim/ReturnManagementSearch',
+#     # 'toexchange': 'https://www.esmplus.com/Escrow/Claim/ExchangeManagementSearch',
+# }
+#
+# def confirm(id, pw, stage, order_info):
+#     with requests.Session() as sess:
+#         mID = login(sess, id, pw, site)
+#         data = {
+#             'mID': mID,
+#             'orderInfo': order_info,
+#         }
+#         return sess.post(confirm_urls['stage'], data=data)
 
 def neworder_confirm(id, pw, site, order_info):
     with requests.Session() as sess:
@@ -197,108 +217,33 @@ def todeliver_confirm(id, pw, site, order_info):
         return sess.post("https://www.esmplus.com/Escrow/Delivery/SetDoShippingGeneral",\
                          data=data)
 
+                                    # return_form_url ex) https://www.esmplus.com/
+                                    # Escrow/Popup/ReturnProcess?oinf=2008278271,2,111421746,,
+def toreturn_confirm(id, pw, site, return_form_url):
+    with requests.Session() as sess:
+        mID = login(sess, id, pw, site)
+        form_resp = sess.get(return_form_url,
+                             headers=headers)
+        stream = io.StringIO(form_resp.text)
+        form = parse(stream).getroot().xpath('//form')[0]
+        form.action = 'https://www.esmplus.com/Escrow/Popup/SetReturnProcess'
+        form.fields['PickupYN'] = 'Y'
+        form.fields['RefundYN'] = 'Y'
+        form.fields['RefundHoldYN'] = 'N'
+        return sess.post(form.action, data=dict(form.fields))
 
-#
-#
-# def get_neworder(id, pw, site, start=None, end=None,
-#                  searchKey='ON', searchKeyword=''):
-#     start = str(start) if start else (timezone.now() -
-#           timezone.timedelta(days=30)).strftime("%Y-%m-%d")
-#     end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
-#
-#     with requests.Session() as sess:
-#         mID = login(sess, id, pw, site)
-#         neworder_data = [
-#           ('page', '1'),
-#           ('limit', '20'),
-#           ('siteGbn', '0'),
-#           # ('searchAccount', '341270'),
-#           ('searchDateType', 'ODD'),    # Ordered Day
-#           ('searchSDT', start),
-#           ('searchEDT', end),
-#           ('searchKey', searchKey),
-#           ('searchKeyword', searchKeyword),
-#           ('searchDistrType', 'AL'),
-#           ('searchAllYn', 'Y'),
-#           ('SortFeild', 'PayDate'),
-#           ('SortType', 'Desc'),
-#           ('start', '0'),
-#           ('searchTransPolicyType', ''),
-#         ]
-#         neworder_data.append( ('searchAccount', mID) )
-#         neworder_resp = sess.post('https://www.esmplus.com/Escrow/Order/NewOrderSearch',
-#                   headers=headers, data=neworder_data)
-#
-#         return mID, json.loads(neworder_resp.text)
-#
-# # 발송대기
-# def get_todeliver(id, pw, site, start=None, end=None,
-#                  searchKey='ON', searchKeyword=''):
-#     start = str(start) if start else (timezone.now() -
-#           timezone.timedelta(days=30)).strftime("%Y-%m-%d")
-#     end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
-#
-#     with requests.Session() as sess:
-#         mID = login(sess, id, pw, site)
-#         todeliver_data = [
-#           ('page', '1'),
-#           ('limit', '100'),
-#           ('siteGbn', '0'),
-#           # ('searchAccount', '341270'),
-#           ('searchDateType', 'ODD'),
-#           ('searchSDT', start),
-#           ('searchEDT', end),
-#           ('searchKey', searchKey),
-#           ('searchKeyword', searchKeyword),
-#           ('excelInfo', ''),
-#           ('searchStatus', '0'),
-#           ('searchAllYn', 'Y'),
-#           ('SortFeild', 'PayDate'),
-#           ('SortType', 'Desc'),
-#           ('start', '0'),
-#           ('searchOrderType', ''),
-#           ('searchDeliveryType', ''),
-#           ('searchPaking', 'false'),
-#           ('searchDistrType', 'AL'),
-#           ('searchTransPolicyType', ''),
-#         ]
-#         todeliver_data.append( ('searchAccount', mID) )
-#         todeliver_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GeneralDeliverySearch',
-#                       headers=headers, data=todeliver_data)
-#
-#         return mID, json.loads(todeliver_resp.text)
-#
-#
-# # 배송중
-# def get_sending(id, pw, site, start=None, end=None,
-#                  searchKey='ON', searchKeyword=''):
-#     start = str(start) if start else (timezone.now() -
-#           timezone.timedelta(days=30)).strftime("%Y-%m-%d")
-#     end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
-#
-#     with requests.Session() as sess:
-#         mID = login(sess, id, pw, site)
-#         data = [
-#           ('page', '1'),
-#           ('limit', '20'),
-#           ('siteGbn', '0'),
-#           # ('searchAccount', '341270'),
-#           ('searchDateType', 'ODD'),
-#           ('searchSDT', start),
-#           ('searchEDT', end),
-#           ('searchKey', searchKey),
-#           ('searchKeyword', searchKeyword),
-#           ('searchDistrType', 'AL'),
-#           ('searchType', '0'),
-#           ('excelInfo', 'undefined'),
-#           ('searchStatus', '0'),
-#           ('searchAllYn', 'N'),
-#           ('SortFeild', 'PayDate'),
-#           ('SortType', 'Desc'),
-#           ('start', '0'),
-#           ('searchTransPolicyType', ''),
-#         ]
-#         data.append( ('searchAccount', mID) )
-#         sending_resp = sess.post('https://www.esmplus.com/Escrow/Delivery/GetSendingSearch',
-#                   headers=headers, data=data)
-#         return mID, json.loads(sending_resp.text)
+
+def toexchange_confirm(id, pw, site, exchange_form_url,
+                       comp, invoice):
+    with requests.Session() as sess:
+        mID = login(sess, id, pw, site)
+        form_resp = sess.get(exchange_form_url,
+                             headers=headers)
+        stream = io.StringIO(form_resp.text)
+        form = parse(stream).getroot().xpath('//form')[0]
+        form.action = 'https://www.esmplus.com/Escrow/Popup/SetExchangeProcess'
+        form.fields['PickupYN'] = 'Y'
+        form.fields['ResendYN'] = 'Y'
+        form.fields['resendCompCode'] = comp
+        form.fields['resendInvoiceNo'] = invoice
+        return sess.post(form.action, data=dict(form.fields))

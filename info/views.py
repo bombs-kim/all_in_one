@@ -15,18 +15,22 @@ def add_extra_info(entries, site):
     for entry in entries:
         entry['site__'] = site
 
+# special case for ESM exchange
+# def ESM_exchange_search(account_userid, account_password, stage, account_site,
+#                         start, end, searchKey, searchKeyword):
+#     total_entries = []
+#     for searchStatus in ("EP",):
+#         mID, entries = esm.search(
+#             account_userid, account_password, stage, account_site,
+#             start, end, searchKey, searchKeyword, searchStatus)
+#         pprint(type(entries))
+#         total_entries += entries['data']
+#     return mID, {'data': total_entries}
 
 def get_entries(account, stage, start=None, end=None,
                  searchKey='ON', searchKeyword=''):
     if account.site in ('ESM', 'GMKT', 'AUC'):
-        # handlers = {
-        #     "neworder": esm.get_neworder,
-        #     "todeliver": esm.get_todeliver,
-        #     "sending": esm.get_sending
-        # }
-        # if stage not in handlers:
-        #     print("Error")
-        #     return
+        # search = ESM_exchange_search if stage == "toexchange" else esm.search
         mID, entries = esm.search(
             account.userid, account.password, stage, account.site,
             start, end, searchKey, searchKeyword)
@@ -185,6 +189,91 @@ def todeliver_confirm(request):
         # note that 'success' value is still True!
         j = json.loads(resp.text)
                               # string based failure test. vulnerable to change in the future
+        if not j['success'] or "오류" in j["message"] :
+            success = False
+        msg += j['message'] + "\n"
+    if not success:
+        return JsonResponse({'status': 'fail', 'msg': msg})
+    return JsonResponse({'status':'ok', 'msg': msg})
+
+
+# For return and exchange
+# we may not have to allow multiple items selection
+# If that's the case, two view functions can be shorter
+@login_required
+@require_POST
+def toreturn_confirm(request):
+    ESM_orders = defaultdict(list)
+    orders = request.POST.getlist('orderInfo')
+
+    for idx, order in enumerate(orders):
+        # Currently site is not used. But may be used in the future
+        site, seller_id, oinf = order.split("/")
+        if site == "ESM":
+            # oinf format
+            # OrderNo,SiteIdValue,SellerCustNo,returnInvoiceNo,returnDeliveryComp
+            # 2008278271,2,111421746,,
+            ESM_orders[seller_id].append(oinf)
+
+    # Response form will be used to authenticate and process return
+    return_form_url = 'https://www.esmplus.com/Escrow/Popup/ReturnProcess'
+    accounts = request.user.master.accounts.all()
+    success = True
+    msg = ""
+    for seller_id in ESM_orders:
+        account = accounts.get(userid=seller_id)
+        resp = esm.toreturn_confirm(
+            account.userid, account.password,
+            account.site, return_form_url + "?oinf=" + "^".join(
+                ESM_orders[seller_id])
+            )
+        # example response
+        # {'message': '환불 승인되었습니다.', 'success': True}
+        j = json.loads(resp.text)
+                              # string based failure test. vulnerable to change in the future
+        if not j['success'] or "오류" in j["message"] :
+            success = False
+        msg += j['message'] + "\n"
+    if not success:
+        return JsonResponse({'status': 'fail', 'msg': msg})
+    return JsonResponse({'status':'ok', 'msg': msg})
+
+@login_required
+@require_POST
+def toexchange_confirm(request):
+    ESM_orders = defaultdict(list)
+    orders = request.POST.getlist('orderInfo')
+    # Assuming there are on only one comp, and invoice info respectively
+    comp = request.POST.get('resendCompCode')
+    inv = request.POST.get('invoiceNo')
+
+    for idx, order in enumerate(orders):
+        # Currently site is not used. But may be used in the future
+        site, seller_id, oinf = order.split("/")
+        if site == "ESM":
+            # oinf format
+            # OrderNo,SiteIdValue,SellerCustNo
+            # 2008278271,2,111421746
+            ESM_orders[seller_id].append(oinf)
+
+    # Response form will be used to authenticate and process return
+    exchange_form_url = 'https://www.esmplus.com/Escrow/Popup/ExchangeProcess'
+    accounts = request.user.master.accounts.all()
+    success = True
+    msg = ""
+    for seller_id in ESM_orders:
+        account = accounts.get(userid=seller_id)
+        exchange_form_url += "?oinf=" + "^".join(ESM_orders[seller_id])
+        resp = esm.toexchange_confirm(
+            account.userid, account.password, account.site,
+            exchange_form_url, comp, inv)
+        # example response
+        # {'message': '재발송 처리되었습니다. \n\n
+        #  교환 재발송 처리된 주문건은 배송중 메뉴에서 확인하시기 바랍니다.',
+        #  'success': True}
+        j = json.loads(resp.text)
+                              # string based failure test.
+                              # vulnerable to change in the future
         if not j['success'] or "오류" in j["message"] :
             success = False
         msg += j['message'] + "\n"
