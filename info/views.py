@@ -16,7 +16,8 @@ def add_extra_info(entries, site):
     for entry in entries:
         entry['site__'] = site
 
-# special case for ESM exchange
+# Special case for ESM exchange
+# This is needed if you need to search on multiple status at the same time
 # def ESM_exchange_search(account_userid, account_password, stage, account_site,
 #                         start, end, searchKey, searchKeyword):
 #     total_entries = []
