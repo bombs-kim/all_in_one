@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 from pprint import pprint
 from . import esm
 from .forms import SearchForm
@@ -29,6 +30,14 @@ def add_extra_info(entries, site):
 
 def get_entries(account, stage, start=None, end=None,
                  searchKey='ON', searchKeyword=''):
+    # start, end: datetime.date type
+    if not start:
+        if end:
+            print("Error")
+            return
+        start = (timezone.now()-timezone.timedelta(days=30)).date()
+        end = timezone.now().date()
+
     if account.site in ('ESM', 'GMKT', 'AUC'):
         # search = ESM_exchange_search if stage == "toexchange" else esm.search
         mID, entries = esm.search(
@@ -36,9 +45,9 @@ def get_entries(account, stage, start=None, end=None,
             start, end, searchKey, searchKeyword)
         entries = entries['data']
 
-        # add ESM specific info
         for entry in entries:
             entry['mID'] = mID
+            entry['ESMID'] = account.userid
             if stage == "neworder":
                 entry['orderInfo'] = ",".join(str(e) for e in
                     (entry['OrderNo'],

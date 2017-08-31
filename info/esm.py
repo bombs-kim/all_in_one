@@ -163,9 +163,13 @@ search_urls = {
 
 def search(id, pw, stage, site, start, end,
                  searchKey, searchKeyword):
-    start = str(start) if start else (timezone.now() -
-          timezone.timedelta(days=30)).strftime("%Y-%m-%d")
-    end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
+    # moved to the caller(in views.py)
+    # start = str(start) if start else (timezone.now() -
+    #       timezone.timedelta(days=30)).strftime("%Y-%m-%d")
+    # end = str(end) if end else timezone.now().strftime("%Y-%m-%d")
+
+    start = str(start)
+    end = str(end)
 
     with requests.Session() as sess:
         mID = login(sess, id, pw, site)
