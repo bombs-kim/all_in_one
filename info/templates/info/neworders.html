@@ -39,6 +39,7 @@
 
                 <th>ID</th>
                 <th>orderInfo</th>
+                <th>_주문번호</th>
 
                 <th>CP</th>
                 <th>HT</th>
@@ -59,11 +60,12 @@
             {% for entry in entries %}
             <tr>
                 <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
-                    value="{{ entry.site__ }}/{{ entry.SellerID }}/{{ entry.orderInfo }}"></td>
+                    value="{{ entry.site__ }}/{{ entry.ESMID }}/{{ entry.orderInfo }}"></td>
                 <td> {{ entry.site__ }}</td>
 
                 <td>{{ entry.SellerID }}</td>
                 <td>{{ entry.orderInfo }}</td>
+                <td>{{ entry.SiteOrderNo }}</td>    {# different from OrderNo #}
 
                 <td>{{ entry.BuyerCp }}</td>
                 <td>{{ entry.BuyerHt }}</td>

@@ -38,7 +38,8 @@
                     url: "{% url 'info:toreturn_confirm' %}",
                     data: oinfs + "&" + csrf,
                     success: function(result,status,xhr) {
-                        if (result['status'] === "ok"){ alert("배송등록 성공"); location.reload(); }
+                        if (result['status'] === "ok"){
+                            alert("반품등록 성공\n" + result['msg']); location.reload(); }
                         else { alert(result['msg']); location.reload(); }
                     },
             });
@@ -77,7 +78,7 @@
             {% for entry in entries %}
             <tr>
                 <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
-                    value="{{ entry.site__ }}/{{ entry.SellerId }}/{{ entry.OrderNo }},{{ entry.SiteIdValue }},{{ entry.SellerCustNo }},{{ entry.ReturnInvoiceNo }},{% if entry.ReturnDeliveryComp %}{{ entry.ReturnDeliveryComp }}{% else %}{% endif %}"></td>
+                    value="{{ entry.site__ }}/{{ entry.ESMID }}/{{ entry.OrderNo }},{{ entry.SiteIdValue }},{{ entry.SellerCustNo }},{{ entry.ReturnInvoiceNo }},{% if entry.ReturnDeliveryComp %}{{ entry.ReturnDeliveryComp }}{% else %}{% endif %}"></td>
                 <td> {{ entry.site__ }}</td>
                 <td>{{ entry.SellerId }}</td>
 
