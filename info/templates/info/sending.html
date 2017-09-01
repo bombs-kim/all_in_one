@@ -28,52 +28,83 @@
     <table>
         <tr>
             <th>사이트</th>
-
-            <th>ID</th>
+            <th>몰 ID</th>
 
             <th>발송일</th>
             <th>배송상태</th>
 
-            <th>CP</th>
-            <th>HT</th>
             <th>구매자ID</th>
             <th>구매자</th>
+            <th>전화번호1</th>
+            <th>전화번호2</th>
 
             <th>상품명</th>
             <th>상품번호</th>
-            <th>카트번호</th>
             <th>판매가</th>
-            <th>입금일</th>
+            <th>입금일/결제일</th>
+            <th>카트번호(E)</th>
+            <th>배송비 묶음번호(N)</th>
 
             <th>배송타입</th>
             <th>배송주소</th>
-            <th>수취인CP</th>
-            <th>수취인HT</th>
+            <th>수취인이름</th>
+            <th>수취인전화번호1</th>
+            <th>수취인전화번호1</th>
         </tr>
         {% for entry in entries %}
-        <tr>
+        {% if entry.site__ in "ESM/GMKT/AUC" %}
+        <tr class="esm">
             <td>{{ entry.site__ }}</td>
             <td>{{ entry.SellerID }}</td>
 
             <td>{{ entry.TransDate }}</td>
             <td>{{ entry.DeliveryStatus }}</td>
 
-            <td>{{ entry.BuyerCp }}</td>
-            <td>{{ entry.BuyerHt }}</td>
             <td>{{ entry.BuyerID }}</td>
             <td>{{ entry.BuyerName }}</td>
+            <td>{{ entry.BuyerCp }}</td>
+            <td>{{ entry.BuyerHt }}</td>
 
             <td>{{ entry.GoodsName | safe}}</td>
             <td>{{ entry.GoodsNo }}</td>
-            <td>{{ entry.CartNo }}</td>
             <td>{{ entry.SellPrice }}</td>
             <td>{{ entry.DepositConfirmDate }}</td>
+            <td>{{ entry.CartNo }}</td>
+            <td> - </td>
 
             <td>{{ entry.DeliveryFeeType }}</td>
             <td style="min-width:200px">{{ entry.RcverInfoAd | safe}}</td>
+            <td> {{ entry.RcverName }}</td>
             <td>{{ entry.RcverInfoCp }}</td>
             <td>{{ entry.RcverInfoHt }}</td>
         </tr>
+        {% elif entry.site__ == "STOREFARM" %}
+        <tr class="storefarm">
+            <td> {{ entry.site__ }}</td>
+            <td> {{ entry.userid }} </td>
+
+            <td>{{ entry.PRODUCT_ORDER_DISPATCH_OPERATION_YMDT }}</td>
+            <td>{{ entry.ORDER_ORDER_STATUS }}</td>
+
+            <td>{{ entry.ORDER_ORDER_MEMBER_ID }}</td>
+            <td>{{ entry.ORDER_ORDER_MEMBER_NAME }}</td>
+            <td>{{ entry.ORDER_MEMBER_TELEPHONE_NO }}</td>
+            <td> - </td>
+
+            <td>{{ entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NAME | safe}}</td>
+            <td>{{ entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NO }}</td>
+            <td>{{ entry.OPRODUCT_ORDER_PRODUCT_UNIT_PRICE }}</td>
+            <td>{{ entry.PRODUCT_ORDER_PAY_YMDT }}</td> {# not PAY_DAY_YMDT #}
+            <td> - </td>
+            <td> {{ entry.ORDER_DELIVERY_FEE_BUNDLE_GROUP_SEQ }} </td>
+
+            <td>{{ entry.ORDER_DELIVERY_FEE_CLASS }}</td>
+            <td style="min-width:200px">{{ entry.PRODUCT_ORDER_ADDRESS_ADDRESS | safe}}</td>
+            <td>{{ entry.PRODUCT_ORDER_ADDRESS_NAME }}</td>
+            <td>{{ entry.PRODUCT_ORDER_ADDRESS_TELNO1 }}</td>
+            <td>{{ entry.PRODUCT_ORDER_ADDRESS_TELNO2 }}</td>
+        </tr>
+        {% endif %}
         {% endfor %}
     </table>
 

@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from pprint import pprint
-from . import esm
+from . import esm, storefarm
 from .forms import SearchForm
 from master.models import Master
 
@@ -29,6 +29,14 @@ def add_extra_info(entries, site):
 #         total_entries += entries['data']
 #     return mID, {'data': total_entries}
 
+
+from datetime import datetime
+import pytz
+tz = pytz.timezone("Asia/Seoul")
+def fromtimestamp(epoch):
+    return datetime.fromtimestamp(1504148557, tz=tz)
+
+
 def get_entries(account, stage, start=None, end=None,
                  searchKey='ON', searchKeyword=''):
     # start, end: datetime.date type
@@ -49,6 +57,10 @@ def get_entries(account, stage, start=None, end=None,
         for entry in entries:
             entry['mID'] = mID
             entry['ESMID'] = account.userid
+            # To be used as the sorting criteria
+            dt = datetime.strptime(
+                entry['DepositConfirmDate'], "%Y-%m-%d %H:%M:%S")
+            entry['_datetime'] = tz.localize(dt)
             if stage == "neworder":
                 entry['orderInfo'] = ",".join(str(e) for e in
                     (entry['OrderNo'],
@@ -56,7 +68,34 @@ def get_entries(account, stage, start=None, end=None,
                      entry['SellerCustNo'])
                     )
 
-        # To do: Other malls
+    elif account.site == "STOREFARM":
+        entries = storefarm.search(
+            account.userid, account.password, stage, account.site,
+            start, end, searchKey, searchKeyword)
+        # entries = entries["htReturnValue"]["pagedResult"]["content"]
+        for entry in entries:
+            entry['userid'] = account.userid
+            if stage == 'sending':
+                dt1 = fromtimestamp(entry['PRODUCT_ORDER_PAY_YMDT'])
+                # To be used as the sorting criteria
+                entry['_datetime'] = dt1
+                entry['PRODUCT_ORDER_PAY_YMDT'] = dt1.strftime('%Y-%m-%d %H:%M:%S')
+                dt2 = fromtimestamp(entry['PRODUCT_ORDER_DISPATCH_OPERATION_YMDT'])
+                entry['PRODUCT_ORDER_DISPATCH_OPERATION_YMDT'] =\
+                                  dt2.strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                dt = fromtimestamp(entry['PAY_PAY_YMDT'])
+                # To be used as the sorting criteria
+                entry['_datetime'] = dt
+                entry['PAY_PAY_YMDT'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                if stage == 'toreturn':
+                    entry['CLAIM_REQUEST_OPERATION_YMDT_RETURN'] = fromtimestamp(
+                        entry['CLAIM_REQUEST_OPERATION_YMDT_RETURN']
+                        ).strftime('%Y-%m-%d %H:%M:%S')
+                elif stage == 'toexchange':
+                    entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE'] = fromtimestamp(
+                        entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE']
+                        ).strftime('%Y-%m-%d %H:%M:%S')
     add_extra_info(entries, account.site)
     return entries
 
@@ -78,6 +117,7 @@ def get_form_and_entries(request, accounts, stage):
         search_form = SearchForm()
         for account in accounts:
             entries += get_entries(account, stage)
+    entries.sort(key=lambda a: a['_datetime'])
     return search_form, entries
 
 
@@ -154,7 +194,7 @@ def neworder_confirm(request):
         # Do nothing with resp currently
     return JsonResponse({'status':'ok'})
 
-
+# ESM
 companies = {
     "10013": "CJ택배",
     "10001": "대한통운",

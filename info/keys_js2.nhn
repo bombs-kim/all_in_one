@@ -1,0 +1,22 @@
+	sessionkey = 'qYUbbQuq78iORlX2';
+	keyname = '100012429';
+	evalue = '8ff527bbcb74e8ec03da68508a109739d13b571c0df089cf727d38b095c5878e30ef1ad617b7a54236d6cab330cc7595ae6b9653c7358886abd9ef9e4387af1b7e3c0b3bb2061419f3fc9a8289e999b22ab41b3e00adea9591e46810691b3088ece617837079b005d104f48aa7cffb0335ce54461cf8ebd1f589164b4357bf85';
+	nvalue = '010001';
+	$('encnm').value = '100012429';
+	if (!sessionkey || !keyname || !evalue || !nvalue) {
+	//if (true) {
+		if ($('enctp').value == 3) {
+			showErrorDiv2(4);
+		} else {
+			showErrorDiv(4);
+		}
+	} else {
+		var rsa = new RSAKey();
+		rsa.setPublic(evalue, nvalue);
+		$('encpw').value = rsa.encrypt(getLenChar(sessionkey) + sessionkey
+				+ getLenChar($('id').value) + $('id').value
+				+ getLenChar($('pw').value) + $('pw').value);
+		$('pw').value = "";
+		$('id').value = "";
+		$('frmNIDLogin').submit();
+	}

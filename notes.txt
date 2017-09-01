@@ -1,0 +1,26 @@
+스토어팜 search_type "PRODUCT_ORDER_NO"인 경우 무조건 전체 스테이지에서 검색이 된다.
+ => 주문번호(스토어팜의 경우 '상품'주문번호)검색은 글로벌 서치로 빼기
+
+스토어팜은 상품명 검색지원x
+(자체적으로 만들어야 할 수도)
+
+스토어팜에서 판매자가 취소를 했을 때 바로 취소가 되지 않고 취소요청으로 남는 경우가 가끔 있다.
+ex)구매자가 휴대폰 소액결제를 했는데 결제액 납부가 미납될 경우 환불을 받을 수 없다고..? 한다
+
+
+<ESM javascript files locations>
+setOrderConfirmYn,
+CheckRowSelet,
+GeneralDeliveryEvents.TransProcess
+
+ifm_TDM105(NewOrder)> Order > NewOrder.js?dummy...
+
+Escrow/Popup/ReturnProcess?oinf=
+
+https://sell.storefarm.naver.com/api/login/init?needLoginInfoForAngular=true&stateName=login-naverLoginCallback
+
+
+<ESM distribution type>
+NL: 일반주문
+G9: G9주문
+TL: 이베이물류서비스주문

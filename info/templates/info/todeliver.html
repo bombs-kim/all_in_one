@@ -47,29 +47,32 @@
             <tr>
                 <th style="min-width:30px">선택</th>
                 <th>사이트</th>
-                <th>ID</th>
+                <th>몰 ID</th>
 
                 <th>택배사 선택</th>
                 <th>송장번호</th>
 
-                <th>CP</th>
-                <th>HT</th>
                 <th>구매자ID</th>
                 <th>구매자</th>
+                <th>전화번호1</th>
+                <th>전화번호2</th>
 
                 <th>상품명</th>
                 <th>상품번호</th>
-                <th>카트번호</th>
                 <th>판매가</th>
                 <th>입금일</th>
+                <th>카트번호(E)</th>
+                <th>배송비 묶음번호(N)</th>
 
                 <th>배송타입</th>
                 <th>배송주소</th>
-                <th>수취인CP</th>
-                <th>수취인HT</th>
+                <th>수취인이름</th>
+                <th>수취인전화번호1</th>
+                <th>수취인전화번호1</th>
             </tr>
             {% for entry in entries %}
-            <tr>
+            {% if entry.site__ in "ESM/GMKT/AUC" %}
+            <tr class="esm">
                 <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
                     value="{{ entry.site__ }}/{{ entry.ESMID }}/{{ entry.OrderNo }}"></td>
                 <td> {{ entry.site__ }}</td>
@@ -89,22 +92,65 @@
                     <input type="text" name="invoiceNo" value="">
                 </td>
 
-                <td>{{ entry.BuyerCp }}</td>
-                <td>{{ entry.BuyerHt }}</td>
                 <td>{{ entry.BuyerID }}</td>
                 <td>{{ entry.BuyerName }}</td>
+                <td>{{ entry.BuyerCp }}</td>
+                <td>{{ entry.BuyerHt }}</td>
 
                 <td>{{ entry.GoodsName | safe}}</td>
                 <td>{{ entry.GoodsNo }}</td>
-                <td>{{ entry.CartNo }}</td>
                 <td>{{ entry.SellPrice }}</td>
                 <td>{{ entry.DepositConfirmDate }}</td>
+                <td>{{ entry.CartNo }}</td>
+                <td> - </td>
 
                 <td>{{ entry.DeliveryFeeType }}</td>
                 <td style="min-width:200px">{{ entry.RcverInfoAd | safe}}</td>
+                <td> {{ entry.RcverName }}</td>
                 <td>{{ entry.RcverInfoCp }}</td>
                 <td>{{ entry.RcverInfoHt }}</td>
             </tr>
+            {% elif entry.site__ == "STOREFARM" %}
+            <tr class="storefarm">
+                <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
+                    value="-/-/-"></td>
+                <td> {{ entry.site__ }}</td>
+                <td> {{ entry.userid }} </td> {# id #}
+
+                <td>
+                    <select name="company">
+                        <option value="CJGLS">CJ대한통운</option>
+                        <option value="EPOST">우체국택배</option>
+                        <option value="HANJIN">한진택배</option>
+                        <option value="KGB">로젠택배</option>
+                        <option value="DONGBU">KG로지스</option>
+                        <option value="INNOGIS">gtx로지스</option>
+                        <option value="HYUNDAI">롯데택배</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" name="invoiceNo" value="">
+                </td>
+
+                <td>{{ entry.ORDER_ORDER_MEMBER_ID }}</td>
+                <td>{{ entry.ORDER_ORDER_MEMBER_NAME }}</td>
+                <td>{{ entry.ORDER_MEMBER_TELEPHONE_NO }}</td>
+                <td> - </td>
+
+                <td>{{ entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NAME | safe}}</td>
+                <td>{{ entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NO }}</td>
+                <td>{{ entry.OPRODUCT_ORDER_PRODUCT_UNIT_PRICE }}</td>
+                <td>{{ entry.PAY_PAY_YMDT }}</td>
+                <td> - </td>
+                <td> {{ entry.ORDER_DELIVERY_FEE_BUNDLE_GROUP_SEQ }} </td>
+
+                <td>{{ entry.ORDER_DELIVERY_FEE_CLASS }}</td>
+                <td style="min-width:200px">{{ entry.PRODUCT_ORDER_ADDRESS_ADDRESS | safe}}</td>
+                <td>{{ entry.PRODUCT_ORDER_ADDRESS_NAME }}</td>
+                <td>{{ entry.PRODUCT_ORDER_ADDRESS_TELNO1 }}</td>
+                <td>{{ entry.PRODUCT_ORDER_ADDRESS_TELNO2 }}</td>
+            </tr>
+            {% endif %}
             {% endfor %}
         </table>
     </form>
@@ -173,4 +219,49 @@
 <option value="10079">범한판토스</option>
 <option value="10080">GPS LOGIX</option>
 <option value="10081">한의사랑택배</option>
+
+
+STOREFARM
+<select style="width:90%;height:18px;">
+    <option value="">선택</option>
+    <option value="CJGLS">CJ대한통운</option>
+    <option value="EPOST">우체국택배</option>
+    <option value="HANJIN">한진택배</option>
+    <option value="KGB">로젠택배</option>
+    <option value="DONGBU">KG로지스</option>
+    <option value="INNOGIS">gtx로지스</option>
+    <option value="HYUNDAI">롯데택배</option>
+    <option value="REGISTPOST">우편등기</option>
+    <option value="DAESIN">대신택배</option>
+    <option value="ILYANG">일양로지스</option>
+    <option value="KDEXP">경동택배</option>
+    <option value="CHUNIL">천일택배</option>
+    <option value="CVSNET">편의점택배</option>
+    <option value="HDEXP">합동택배</option>
+    <option value="DHL">DHL</option>
+    <option value="DHLDE">DHL(독일)</option>
+    <option value="FEDEX">FEDEX</option>
+    <option value="GSMNTON">GSMNTON</option>
+    <option value="WARPEX">WarpEx</option>
+    <option value="WIZWA">WIZWA</option>
+    <option value="EMS">EMS</option>
+    <option value="ACIEXPRESS">ACI</option>
+    <option value="EZUSA">EZUSA</option>
+    <option value="PANTOS">범한판토스</option>
+    <option value="HLCGLOBAL">롯데택배(국제택배)</option>
+    <option value="UPS">UPS</option>
+    <option value="KOREXG">CJ대한통운(국제택배)</option>
+    <option value="TNT">TNT</option>
+    <option value="SWGEXP">성원글로벌</option>
+    <option value="DAEWOON">대운글로벌</option>
+    <option value="USPS">USPS</option>
+    <option value="IPARCEL">i-parcel</option>
+    <option value="KUNYOUNG">건영택배</option>
+    <option value="HPL">한의사랑택배</option>
+    <option value="DADREAM">다드림</option>
+    <option value="SLX">SLX택배</option>
+    <option value="HONAM">호남택배</option>
+    <option value="GSIEXPRESS">GSI익스프레스</option>
+    <option value="CH1">기타택배</option>
+</select>
 {% endcomment %}

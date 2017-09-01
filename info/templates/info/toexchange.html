@@ -53,7 +53,7 @@
             <tr>
                 <th style="min-width:30px">선택</th>
                 <th>사이트</th>
-                <th>ID</th>
+                <th>몰 ID</th>
 
                 <th>주문번호</th>
                 <th>교환상태</th>
@@ -62,10 +62,10 @@
                 <th>택배사 선택</th>
                 <th>송장번호</th>
 
-                <th>CP</th>
-                <th>HT</th>
                 <th>구매자ID</th>
                 <th>구매자</th>
+                <th>전화번호1</th>
+                <th>전화번호2</th>
 
                 <th>상품명</th>
                 <th>상품번호</th>
@@ -75,11 +75,13 @@
 
                 <th>배송타입</th>
                 <th>배송주소</th>
-                <th>수취인CP</th>
-                <th>수취인HT</th>
+                <th>수취인이름</th>
+                <th>수취인전화번호1</th>
+                <th>수취인전화번호2</th>
             </tr>
             {% for entry in entries %}
-            <tr>
+            {% if entry.site__ in "ESM/GMKT/AUC" %}
+            <tr class="esm">
                 <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
                     value="{{ entry.site__ }}/{{ entry.ESMID }}/{{ entry.OrderNo }},{{ entry.SiteIdValue }},{{ entry.SellerCustNo }}"></td>
                 <td> {{ entry.site__ }}</td>
@@ -108,10 +110,10 @@
                     <input type="text" name="invoiceNo" value="">
                 </td>
 
-                <td>{{ entry.BuyerInfoCp }}</td>
-                <td>{{ entry.BuyerInfoHt }}</td>
                 <td>{{ entry.BuyerId }}</td>
                 <td>{{ entry.BuyerName }}</td>
+                <td>{{ entry.BuyerInfoCp }}</td>
+                <td>{{ entry.BuyerInfoHt }}</td>
 
                 <td>{{ entry.GoodsName | safe}}</td>
                 <td>{{ entry.GoodsNo }}</td>
@@ -121,9 +123,60 @@
 
                 <td>{{ entry.DeliveryFeeType }}</td>
                 <td style="min-width:200px">{{ entry.RcverInfoAd | safe}}</td>
+                <td> {{ entry.RcverName }}</td>
                 <td>{{ entry.RcverInfoCp }}</td>
                 <td>{{ entry.RcverInfoHt }}</td>
             </tr>
+
+            {% elif entry.site__ == "STOREFARM" %}
+            <tr class="storefarm">
+                <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
+                    value="-/-/-"></td>
+                <td> {{ entry.site__ }}</td>
+                <td> {{ entry.userid }} </td> {# id #}
+
+                <td>{{ entry.PRODUCT_ORDER_ID }}</td>    {# different from OrderNo #}
+                <td>{{ entry.CLAIM_STATUS }}</td>
+                <td>{{ entry.CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE }}</td>
+
+                <td>
+                    <select name="resendCompCode">
+                        {# <option value="000000014^대한통운">대한통운</option>
+                        <option value="000000015^한진택배">한진택배</option>
+                        <option value="000000011^우체국택배">우체국택배</option>
+                        <option value="100000016^롯데택배">롯데택배</option>
+                        <option value="100000228^롯데국제특송">롯데국제특송</option>
+                        <option value="000000023^로젠택배">로젠택배</option>
+                        <option value="100000070^KG로지스">KG로지스</option>
+                        <option value="100000077^이노지스택배">이노지스택배</option>
+                        <option value="100000225^편의점택배(GS25)">편의점택배(GS25)</option>
+                        <option value="100000214^GTX로지스">GTX로지스</option>
+                        <option value="100000065^하나로택배">하나로택배</option>#}
+                    </select>
+                </td>
+                <td>
+                    <input type="text" name="invoiceNo" value="">
+                </td>
+
+                <td>{{ entry.ORDER_ORDER_MEMBER_ID }}</td>
+                <td>{{ entry.ORDER_ORDER_MEMBER_NAME }}</td>
+                <td>{{ entry.ORDER_MEMBER_TELEPHONE_NO }}</td>
+                <td> - </td>
+
+                <td>{{ entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NAME | safe}}</td>
+                <td>{{ entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NO }}</td>
+                <td>{{ entry.OPRODUCT_ORDER_PRODUCT_UNIT_PRICE }}</td>
+                <td>{{ entry.PAY_PAY_YMDT }}</td>
+                <td> - </td>
+                <td> {{ entry.ORDER_DELIVERY_FEE_BUNDLE_GROUP_SEQ }} </td>
+
+                <td> - </td>
+                {# <td>배송주소</td>#}
+                <td> - </td>
+                <td> - </td>
+                <td> - </td>
+            </tr>
+            {% endif %}
             {% endfor %}
         </table>
     </form>

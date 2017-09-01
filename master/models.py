@@ -15,6 +15,7 @@ class Account(models.Model):
         ('ESM', 'ESM'),
         ('GMKT', 'G Market'),
         ('AUC', 'Auction'),
+        ('STOREFARM', 'Naver Store farm'),
     )
 
     master = models.ForeignKey(Master, related_name='accounts')

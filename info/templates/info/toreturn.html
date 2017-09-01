@@ -53,30 +53,33 @@
             <tr>
                 <th style="min-width:30px">선택</th>
                 <th>사이트</th>
-                <th>ID</th>
+                <th>몰 ID</th>
 
                 <th>주문번호</th>
                 <th>반품상태</th>
                 <th>반품신청일</th>
 
-                <th>CP</th>
-                <th>HT</th>
                 <th>구매자ID</th>
                 <th>구매자</th>
+                <th>전화번호1</th>
+                <th>전화번호2</th>
 
                 <th>상품명</th>
                 <th>상품번호</th>
-                <th>카트번호</th>
                 <th>판매가</th>
-                <th>입금일</th>
+                <th>입금일/결제일</th>
+                <th>카트번호(E)</th>
+                <th>배송비 묶음번호(N)</th>
 
                 <th>배송타입</th>
                 {# <th>배송주소</th>#}
-                <th>수취인CP</th>
-                <th>수취인HT</th>
+                <th>수취인이름</th>
+                <th>수취인전화번호1</th>
+                <th>수취인전화번호2</th>
             </tr>
             {% for entry in entries %}
-            <tr>
+            {% if entry.site__ in "ESM/GMKT/AUC" %}
+            <tr = "esm">
                 <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
                     value="{{ entry.site__ }}/{{ entry.ESMID }}/{{ entry.OrderNo }},{{ entry.SiteIdValue }},{{ entry.SellerCustNo }},{{ entry.ReturnInvoiceNo }},{% if entry.ReturnDeliveryComp %}{{ entry.ReturnDeliveryComp }}{% else %}{% endif %}"></td>
                 <td> {{ entry.site__ }}</td>
@@ -86,22 +89,54 @@
                 <td>{{ entry.StatusName }}</td>
                 <td>{{ entry.ClaimRegDate }}</td>
 
-                <td>{{ entry.BuyerInfoCp }}</td>
-                <td>{{ entry.BuyerInfoHt }}</td>
                 <td>{{ entry.BuyerId }}</td>
                 <td>{{ entry.BuyerName }}</td>
+                <td>{{ entry.BuyerInfoCp }}</td>
+                <td>{{ entry.BuyerInfoHt }}</td>
 
                 <td>{{ entry.GoodsName | safe}}</td>
                 <td>{{ entry.GoodsNo }}</td>
-                <td>{{ entry.CartNo }}</td>
                 <td>{{ entry.SellPrice }}</td>
                 <td>{{ entry.DepositConfirmDate }}</td>
+                <td>{{ entry.CartNo }}</td>
+                <td> - </td>
 
                 <td>{{ entry.DeliveryFeeType }}</td>
                 {# <td style="min-width:200px">{{ entry.RcverInfoAd | safe}}</td>#}
+                <td> {{ entry.RcverName }}</td>
                 <td>{{ entry.RcverInfoCp }}</td>
                 <td>{{ entry.RcverInfoHt }}</td>
             </tr>
+            {% elif entry.site__ == "STOREFARM" %}
+            <tr class="storefarm">
+                <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
+                    value="-/-/-"></td>
+                <td> {{ entry.site__ }}</td>
+                <td> {{ entry.userid }} </td> {# id #}
+
+                <td>{{ entry.PRODUCT_ORDER_ID }}</td>    {# different from OrderNo #}
+                <td>{{ entry.CLAIM_STATUS }}</td>
+                <td>{{ entry.CLAIM_REQUEST_OPERATION_YMDT_RETURN }}</td>
+
+                <td>{{ entry.ORDER_ORDER_MEMBER_ID }}</td>
+                <td>{{ entry.ORDER_ORDER_MEMBER_NAME }}</td>
+                <td>{{ entry.ORDER_MEMBER_TELEPHONE_NO }}</td>
+                <td> - </td>
+
+                <td>{{ entry.PRODUCT_ORDER_DETAIL_PRODUCT_NAME | safe}}</td>
+                <td>{{ entry.PRODUCT_ORDER_DETAIL_PRODUCT_NO }}</td>
+                <td>{{ entry.PRODUCT_ORDER_DETAIL_PRODUCT_PRICE }}</td>
+                <td>{{ entry.PAY_PAY_YMDT }}</td>
+                <td> - </td>
+                <td> {{ entry.ORDER_DELIVERY_FEE_BUNDLE_GROUP_SEQ }} </td>
+
+                <td> - </td>
+                {# <td>배송주소</td>#}
+                <td> - </td>
+                <td> - </td>
+                <td> - </td>
+            </tr>
+            {% endif %}
             {% endfor %}
         </table>
     </form>
