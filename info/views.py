@@ -12,9 +12,10 @@ from .forms import SearchForm
 from master.models import Master
 
 
-def add_extra_info(entries, site):
+def add_extra_info(entries, account):
     for entry in entries:
-        entry['site__'] = site
+        entry['site__'] = account.site
+        entry['userid__'] = account.userid
 
 # Special case for ESM exchange
 # This is needed if you need to search on multiple status at the same time
@@ -49,24 +50,16 @@ def get_entries(account, stage, start=None, end=None,
 
     if account.site in ('ESM', 'GMKT', 'AUC'):
         # search = ESM_exchange_search if stage == "toexchange" else esm.search
-        mID, entries = esm.search(
-            account.userid, account.password, stage, account.site,
+        entries = esm.search(
+            account, stage,
             start, end, searchKey, searchKeyword)
-        entries = entries['data']
 
         for entry in entries:
-            entry['mID'] = mID
-            entry['ESMID'] = account.userid
             # To be used as the sorting criteria
             dt = datetime.strptime(
                 entry['DepositConfirmDate'], "%Y-%m-%d %H:%M:%S")
             entry['_datetime'] = tz.localize(dt)
-            if stage == "neworder":
-                entry['orderInfo'] = ",".join(str(e) for e in
-                    (entry['OrderNo'],
-                     entry['SiteIDValue'],
-                     entry['SellerCustNo'])
-                    )
+
 
     elif account.site == "STOREFARM":
         entries = storefarm.search(
@@ -74,7 +67,6 @@ def get_entries(account, stage, start=None, end=None,
             start, end, searchKey, searchKeyword)
         # entries = entries["htReturnValue"]["pagedResult"]["content"]
         for entry in entries:
-            entry['userid'] = account.userid
             if stage == 'sending':
                 dt1 = fromtimestamp(entry['PRODUCT_ORDER_PAY_YMDT'])
                 # To be used as the sorting criteria
@@ -96,7 +88,7 @@ def get_entries(account, stage, start=None, end=None,
                     entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE'] = fromtimestamp(
                         entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE']
                         ).strftime('%Y-%m-%d %H:%M:%S')
-    add_extra_info(entries, account.site)
+    add_extra_info(entries, account)
     return entries
 
 
@@ -153,6 +145,17 @@ def sending(request):
                   {'entries': entries,
                    'search_form': search_form})
 
+@login_required
+def tocancel(request):
+    accounts = request.user.master.accounts.all()
+    search_form, entries = get_form_and_entries(
+        request, accounts, "tocancel")
+    return render(request,
+                  'info/tocancel.html',
+                  {'entries': entries,
+                   'search_form': search_form})
+
+@login_required
 def toreturn(request):
     accounts = request.user.master.accounts.all()
     search_form, entries = get_form_and_entries(
@@ -162,6 +165,7 @@ def toreturn(request):
                   {'entries': entries,
                    'search_form': search_form})
 
+@login_required
 def toexchange(request):
     accounts = request.user.master.accounts.all()
     search_form, entries = get_form_and_entries(
@@ -247,86 +251,84 @@ def todeliver_confirm(request):
     return JsonResponse({'status':'ok', 'msg': msg})
 
 
-# For return and exchange
-# we may not have to allow multiple items selection
-# If that's the case, two view functions can be shorter
 @login_required
 @require_POST
 def toreturn_confirm(request):
-    ESM_orders = defaultdict(list)
-    orders = request.POST.getlist('orderInfo')
+    ESM_order_infos = defaultdict(list)
+    order_infos = request.POST.getlist('orderInfo')
+    sites = {}
 
-    for idx, order in enumerate(orders):
-        # Currently site is not used. But may be used in the future
+    for idx, order in enumerate(order_infos):
         site, seller_id, oinf = order.split("/")
-        if site == "ESM":
-            # oinf format
-            # OrderNo,SiteIdValue,SellerCustNo,returnInvoiceNo,returnDeliveryComp
-            # 2008278271,2,111421746,,
-            ESM_orders[seller_id].append(oinf)
+        sites[seller_id] = site
+        if site == 'ESM':
+            ESM_order_infos[seller_id].append(oinf)
 
-    # Response form will be used to authenticate and process return
-    return_form_url = 'https://www.esmplus.com/Escrow/Popup/ReturnProcess'
     accounts = request.user.master.accounts.all()
     success = True
     msg = ""
-    for seller_id in ESM_orders:
+    for seller_id in ESM_order_infos:
         account = accounts.get(userid=seller_id)
-        resp = esm.toreturn_confirm(
-            account.userid, account.password,
-            account.site, return_form_url + "?oinf=" + "^".join(
-                ESM_orders[seller_id])
-            )
-        # example response
-        # {'message': '환불 승인되었습니다.', 'success': True}
-        j = json.loads(resp.text)
-                              # string based failure test. vulnerable to change in the future
-        if not j['success'] or "오류" in j["message"] :
-            success = False
-        msg += j['message'] + "\n"
+        if sites[seller_id] == 'ESM':
+            for order_info in ESM_order_infos[seller_id]:
+                # result example
+                # {'message': '환불 승인되었습니다.', 'success': True}
+                result = esm.toreturn_confirm(
+                    account.userid, account.password,
+                    account.site, order_info)
+                msg += order_info + ': '
+                                      # string based failure test. vulnerable to changes in the future
+                if not result['success'] or "오류" in result["message"] :
+                    msg += 'Error' + '\n'
+                    success = False
+                msg += result['message'].replace('\n', '') + "\n\n"
+        else:
+            print("Not implemented")
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
+
 
 @login_required
 @require_POST
 def toexchange_confirm(request):
     ESM_orders = defaultdict(list)
-    orders = request.POST.getlist('orderInfo')
+    order_infos = request.POST.getlist('orderInfo')
     # Assuming there are on only one comp, and invoice info respectively
-    comp = request.POST.get('resendCompCode')
-    inv = request.POST.get('invoiceNo')
+    comps = request.POST.getlist('resendCompCode')
+    invs = request.POST.getlist('invoiceNo')
+    sites = {}
 
-    for idx, order in enumerate(orders):
-        # Currently site is not used. But may be used in the future
+    for idx, order in enumerate(order_infos):
         site, seller_id, oinf = order.split("/")
+        sites[seller_id] = site
         if site == "ESM":
-            # oinf format
-            # OrderNo,SiteIdValue,SellerCustNo
-            # 2008278271,2,111421746
-            ESM_orders[seller_id].append(oinf)
+            ESM_orders[seller_id].append(idx)
+            order_infos[idx] = oinf
 
-    # Response form will be used to authenticate and process return
-    exchange_form_url = 'https://www.esmplus.com/Escrow/Popup/ExchangeProcess'
     accounts = request.user.master.accounts.all()
     success = True
     msg = ""
     for seller_id in ESM_orders:
         account = accounts.get(userid=seller_id)
-        exchange_form_url += "?oinf=" + "^".join(ESM_orders[seller_id])
-        resp = esm.toexchange_confirm(
-            account.userid, account.password, account.site,
-            exchange_form_url, comp, inv)
-        # example response
-        # {'message': '재발송 처리되었습니다. \n\n
-        #  교환 재발송 처리된 주문건은 배송중 메뉴에서 확인하시기 바랍니다.',
-        #  'success': True}
-        j = json.loads(resp.text)
+        if sites[seller_id] == 'ESM':
+            for idx in ESM_orders[seller_id]:
+                # result example
+                # {'message': '재발송 처리되었습니다. \n\n
+                #  교환 재발송 처리된 주문건은 배송중 메뉴에서 확인하시기 바랍니다.',
+                #  'success': True}
+                result = esm.toexchange_confirm(
+                    account.userid, account.password, account.site,
+                    order_infos[idx], comps[idx], invs[idx])
                               # string based failure test.
                               # vulnerable to change in the future
-        if not j['success'] or "오류" in j["message"] :
-            success = False
-        msg += j['message'] + "\n"
+                msg += order_infos[idx] + ': '
+                if not result['success'] or "오류" in result["message"] :
+                    msg += 'Error' + '\n'
+                    success = False
+                msg += result['message'].replace('\n', '') + "\n\n"
+        else:
+            print("Not implemented")
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})

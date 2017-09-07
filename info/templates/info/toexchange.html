@@ -6,10 +6,10 @@
 <script>
     $(function() {
         // Currently, ESM allows only one row to be sellected
-        // so we apply the same restriction to the checkboxes
-        $('input:checkbox').on('click', function() {
-            $('input:checkbox').not(this).prop('checked', false);
-        });
+        // so we may apply the same restriction to the checkboxes
+        // $('input:checkbox').on('click', function() {
+        //     $('input:checkbox').not(this).prop('checked', false);
+        // });
 
         $('#confirm').on('submit', function(e){
             e.preventDefault();
@@ -41,7 +41,6 @@
 <th style="color:blue">교환요청일</th>
 <th style="color:blue">택배사 선택</th>
 <th style="color:blue">송장번호</th>
-<th style="color:blue">__구매자</th>
 {% endblock %}
 
 {% block custom_fields_esm %}
@@ -66,10 +65,6 @@
 <td>
     <input type="text" name="invoiceNo" value="">
 </td>
-<td>
-{{ entry.BuyerId }},{{ entry.BuyerName }},
-{{ entry.BuyerInfoCp }},{{ entry.BuyerInfoHt }}
-</td>
 {% endblock %}
 
 {% block custom_fields_storefarm %}
@@ -83,7 +78,6 @@
 <td>
     <input type="text" name="invoiceNo" value="">
 </td>
-<td>-</td>
 {% endblock %}
 
 {% comment %}
