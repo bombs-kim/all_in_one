@@ -197,7 +197,6 @@ def search(id, pw, stage, site, start, end,
                 params = get_search_condition2(type, status, start, end)
                 resp = sess.get(search_urls[stage],
                           headers=headers, params=params)
-                print(resp.text)
                 cur_entries = json.loads(resp.text)\
                                 ["htReturnValue"]["pagedResult"]["content"]
                 for entry in cur_entries:
