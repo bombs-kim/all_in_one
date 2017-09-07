@@ -1,26 +1,9 @@
-{% extends "base.html" %}
+{% extends "info/info_base.html" %}
 
 {% block title %} 반품요청 조회 {% endblock %}
 
-{% block content %}
-    <style>
-        table, td, th{
-            border: 1px solid black;
-            white-space:nowrap;
-        }
-        th{ text-align: center; }
-        td{ padding: 5px; }
-        ul li { display: inline; }
-    </style>
-    <div id="search">
-        <form action="." method="post">
-            {{ search_form.as_p }}
-
-            {% csrf_token %}
-            <input type="submit" value="Search">
-        </form>
-    </div>
-    <script>
+{% block script %}
+<script>
     $(function() {
         // Currently, ESM allows only one row to be sellected
         // so we apply the same restriction to the checkboxes
@@ -45,41 +28,95 @@
             });
         });
     });
-    </script>
+</script>
+{% endblock %}
+
+{% block submit_value %}
+주문확인
+{% endblock %}
+
+{% block custom_fields_label %}
+<th style="color:blue">주문번호</th>
+<th style="color:blue">반품상태</th>
+<th style="color:blue">반품신청일</th>
+<th style="color:blue">__구매자</th>
+{% endblock %}
+
+{% block custom_fields_esm %}
+<td>{{ entry.OrderNo }}</td>
+<td>{{ entry.StatusName }}</td>
+<td>{{ entry.ClaimRegDate }}</td>
+{# Because esm is full of typos, this extra field is needed#}
+<td>
+{{ entry.BuyerId }},{{ entry.BuyerName }},
+{{ entry.BuyerInfoCp }},{{ entry.BuyerInfoHt }}
+</td>
+
+{% endblock %}
+
+{% block custom_fields_storefarm %}
+<td>{{ entry.PRODUCT_ORDER_ID }}</td>    {# different from OrderNo #}
+<td>{{ entry.CLAIM_STATUS }}</td>
+<td>{{ entry.CLAIM_REQUEST_OPERATION_YMDT_RETURN }}</td>
+<td>-</td>
+{% endblock %}
+
+
+{% comment %}
+
+
+{% block content %}
+    <style>
+        table, td, th{
+            border: 1px solid black;
+            white-space:nowrap;
+        }
+        th{ text-align: center; }
+        td{ padding: 5px; }
+        ul li { display: inline; }
+    </style>
+    <div id="search">
+        <form action="." method="post">
+            {{ search_form.as_p }}
+
+            {% csrf_token %}
+            <input type="submit" value="Search">
+        </form>
+    </div>
     <form id="confirm" action="" method="post">
         <input type="submit" value="반품처리">
         {% csrf_token %}
         <table>
             <tr>
                 <th style="min-width:30px">선택</th>
-                <th>사이트</th>
-                <th>몰 ID</th>
+                <th style="color:blue">사이트</th>
+                <th style="color:blue">몰 ID</th>
 
-                <th>주문번호</th>
-                <th>반품상태</th>
-                <th>반품신청일</th>
+                <th style="color:blue">주문번호</th>
+                <th style="color:blue">반품상태</th>
+                <th style="color:blue">반품신청일</th>
 
-                <th>구매자ID</th>
-                <th>구매자</th>
-                <th>전화번호1</th>
-                <th>전화번호2</th>
+                <th style="color:blue">구매자ID</th>
+                <th style="color:blue">구매자</th>
+                <th style="color:blue">전화번호1</th>
+                <th style="color:blue">전화번호2</th>
 
-                <th>상품명</th>
-                <th>상품번호</th>
-                <th>판매가</th>
-                <th>입금일/결제일</th>
-                <th>카트번호(E)</th>
-                <th>배송비 묶음번호(N)</th>
+                <th style="color:blue">상품명</th>
+                <th style="color:blue">상품번호</th>
+                <th style="color:blue">판매가</th>
+                <th style="color:blue">입금일/결제일</th>
+                <th style="color:blue">카트번호(E)</th>
+                <th style="color:blue">배송비 묶음번호(N)</th>
 
-                <th>배송타입</th>
-                {# <th>배송주소</th>#}
-                <th>수취인이름</th>
-                <th>수취인전화번호1</th>
-                <th>수취인전화번호2</th>
+                <th style="color:blue">배송타입</th>
+                {# <th style="color:blue">배송주소</th>#}
+                <th style="color:blue">수취인이름</th>
+                <th style="color:blue">수취인전화번호1</th>
+                <th style="color:blue">수취인전화번호2</th>
             </tr>
             {% for entry in entries %}
             {% if entry.site__ in "ESM/GMKT/AUC" %}
-            <tr = "esm">
+            <tr class="esm">
                 <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
                     value="{{ entry.site__ }}/{{ entry.ESMID }}/{{ entry.OrderNo }},{{ entry.SiteIdValue }},{{ entry.SellerCustNo }},{{ entry.ReturnInvoiceNo }},{% if entry.ReturnDeliveryComp %}{{ entry.ReturnDeliveryComp }}{% else %}{% endif %}"></td>
                 <td> {{ entry.site__ }}</td>
@@ -142,3 +179,4 @@
     </form>
 
 {% endblock %}
+{% endcomment %}

@@ -1,160 +1,73 @@
-{% extends "base.html" %}
+{% extends "info/info_base.html" %}
 
 {% block title %} 배송대기 조회 {% endblock %}
 
-{% block content %}
-    <style>
-        table, td, th{
-            border: 1px solid black;
-            white-space:nowrap;
-        }
-        th{ text-align: center; }
-        td{ padding: 5px; }
-        ul li { display: inline; }
-    </style>
-    <div id="search">
-        <form action="." method="post">
-            {{ search_form.as_p }}
-
-            {% csrf_token %}
-            <input type="submit" value="Search">
-        </form>
-    </div>
-    <script>
-    $(function() {
-        $('#confirm').on('submit', function(e){
-            console.log(e)
-            e.preventDefault();
-            var orderInfo_invoice = $("input:checked").parents("tr").find("input").serialize();
-            var company = $("input:checked").parents("tr").find("select").serialize();
-            var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
-            console.log(orderInfo_invoice + "&" + company + "&" + csrf);
-            $.post({
-                    url: "{% url 'info:todeliver_confirm' %}",
-                    data: orderInfo_invoice + "&" + company + "&" + csrf,
-                    success: function(result,status,xhr) {
-                        if (result['status'] === "ok"){ alert("배송등록 성공"); location.reload(); }
-                        else { alert(result['msg']); location.reload(); }
-                    },
-            });
+{% block script %}
+<script>
+$(function() {
+    $('#confirm').on('submit', function(e){
+        console.log(e)
+        e.preventDefault();
+        var orderInfo_invoice = $("input:checked").parents("tr").find("input").serialize();
+        var company = $("input:checked").parents("tr").find("select").serialize();
+        var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
+        console.log(orderInfo_invoice + "&" + company + "&" + csrf);
+        $.post({
+                url: "{% url 'info:todeliver_confirm' %}",
+                data: orderInfo_invoice + "&" + company + "&" + csrf,
+                success: function(result,status,xhr) {
+                    if (result['status'] === "ok"){ alert("배송등록 성공"); location.reload(); }
+                    else { alert(result['msg']); location.reload(); }
+                },
         });
-     });
-    </script>
-    <form id="confirm" action="" method="post">
-        <input type="submit" value="배송처리">
-        {% csrf_token %}
-        <table>
-            <tr>
-                <th style="min-width:30px">선택</th>
-                <th>사이트</th>
-                <th>몰 ID</th>
+    });
+ });
+</script>
+{% endblock %}
 
-                <th>택배사 선택</th>
-                <th>송장번호</th>
+{% block submit_value %}
+배송처리
+{% endblock %}
 
-                <th>구매자ID</th>
-                <th>구매자</th>
-                <th>전화번호1</th>
-                <th>전화번호2</th>
 
-                <th>상품명</th>
-                <th>상품번호</th>
-                <th>판매가</th>
-                <th>입금일</th>
-                <th>카트번호(E)</th>
-                <th>배송비 묶음번호(N)</th>
+{% block custom_fields_label %}
+<th style="color:blue">택배사 선택</th>
+<th style="color:blue">송장번호</th>
+{% endblock %}
 
-                <th>배송타입</th>
-                <th>배송주소</th>
-                <th>수취인이름</th>
-                <th>수취인전화번호1</th>
-                <th>수취인전화번호1</th>
-            </tr>
-            {% for entry in entries %}
-            {% if entry.site__ in "ESM/GMKT/AUC" %}
-            <tr class="esm">
-                <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
-                    value="{{ entry.site__ }}/{{ entry.ESMID }}/{{ entry.OrderNo }}"></td>
-                <td> {{ entry.site__ }}</td>
-                <td>{{ entry.SellerID }}</td>
 
-                <td>
-                    <select name="company">
-                        <option value="10013">CJ택배</option>
-                        <option value="10001">대한통운</option>
-                        <option value="10007">한진택배</option>
-                        <option value="10005">우체국택배</option>
-                        <option value="10008">롯데택배</option>
-                        <option value="10075">롯데국제특송</option>
-                    </select>
-                </td>
-                <td>
-                    <input type="text" name="invoiceNo" value="">
-                </td>
+{% block custom_fields_esm %}
+<td>
+    <select name="company">
+        <option value="10013">CJ택배</option>
+        <option value="10001">대한통운</option>
+        <option value="10007">한진택배</option>
+        <option value="10005">우체국택배</option>
+        <option value="10008">롯데택배</option>
+        <option value="10075">롯데국제특송</option>
+    </select>
+</td>
+<td>
+    <input type="text" name="invoiceNo" value="">
+</td>
+{% endblock %}
 
-                <td>{{ entry.BuyerID }}</td>
-                <td>{{ entry.BuyerName }}</td>
-                <td>{{ entry.BuyerCp }}</td>
-                <td>{{ entry.BuyerHt }}</td>
 
-                <td>{{ entry.GoodsName | safe}}</td>
-                <td>{{ entry.GoodsNo }}</td>
-                <td>{{ entry.SellPrice }}</td>
-                <td>{{ entry.DepositConfirmDate }}</td>
-                <td>{{ entry.CartNo }}</td>
-                <td> - </td>
-
-                <td>{{ entry.DeliveryFeeType }}</td>
-                <td style="min-width:200px">{{ entry.RcverInfoAd | safe}}</td>
-                <td> {{ entry.RcverName }}</td>
-                <td>{{ entry.RcverInfoCp }}</td>
-                <td>{{ entry.RcverInfoHt }}</td>
-            </tr>
-            {% elif entry.site__ == "STOREFARM" %}
-            <tr class="storefarm">
-                <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
-                    value="-/-/-"></td>
-                <td> {{ entry.site__ }}</td>
-                <td> {{ entry.userid }} </td> {# id #}
-
-                <td>
-                    <select name="company">
-                        <option value="CJGLS">CJ대한통운</option>
-                        <option value="EPOST">우체국택배</option>
-                        <option value="HANJIN">한진택배</option>
-                        <option value="KGB">로젠택배</option>
-                        <option value="DONGBU">KG로지스</option>
-                        <option value="INNOGIS">gtx로지스</option>
-                        <option value="HYUNDAI">롯데택배</option>
-                    </select>
-                </td>
-                <td>
-                    <input type="text" name="invoiceNo" value="">
-                </td>
-
-                <td>{{ entry.ORDER_ORDER_MEMBER_ID }}</td>
-                <td>{{ entry.ORDER_ORDER_MEMBER_NAME }}</td>
-                <td>{{ entry.ORDER_MEMBER_TELEPHONE_NO }}</td>
-                <td> - </td>
-
-                <td>{{ entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NAME | safe}}</td>
-                <td>{{ entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NO }}</td>
-                <td>{{ entry.OPRODUCT_ORDER_PRODUCT_UNIT_PRICE }}</td>
-                <td>{{ entry.PAY_PAY_YMDT }}</td>
-                <td> - </td>
-                <td> {{ entry.ORDER_DELIVERY_FEE_BUNDLE_GROUP_SEQ }} </td>
-
-                <td>{{ entry.ORDER_DELIVERY_FEE_CLASS }}</td>
-                <td style="min-width:200px">{{ entry.PRODUCT_ORDER_ADDRESS_ADDRESS | safe}}</td>
-                <td>{{ entry.PRODUCT_ORDER_ADDRESS_NAME }}</td>
-                <td>{{ entry.PRODUCT_ORDER_ADDRESS_TELNO1 }}</td>
-                <td>{{ entry.PRODUCT_ORDER_ADDRESS_TELNO2 }}</td>
-            </tr>
-            {% endif %}
-            {% endfor %}
-        </table>
-    </form>
-
+{% block custom_fields_storefarm %}
+<td>
+    <select name="company">
+        <option value="CJGLS">CJ대한통운</option>
+        <option value="EPOST">우체국택배</option>
+        <option value="HANJIN">한진택배</option>
+        <option value="KGB">로젠택배</option>
+        <option value="DONGBU">KG로지스</option>
+        <option value="INNOGIS">gtx로지스</option>
+        <option value="HYUNDAI">롯데택배</option>
+    </select>
+</td>
+<td>
+    <input type="text" name="invoiceNo" value="">
+</td>
 {% endblock %}
 
 {% comment %}
