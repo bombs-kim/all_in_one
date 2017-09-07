@@ -58,15 +58,33 @@
                 <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
                     value="{{ entry.orderInfo__ }}"></td>
                 <td> {{ entry.site__ }}</td>
-                <td> {{ entry.userid__ }} </td>
+
+                {# Because esm is full of typos we need many if statements #}
+                <td>
+                    {% if entry.SiteID %}{{ entry.SiteID | safe }}
+                    {% else %} {{ entry.SiteId | safe }}
+                    {% endif %}
+                </td>
 
                 {% block custom_fields_esm %}
                 {% endblock %}
 
-                <td>{{ entry.BuyerID }}</td>
+                <td>
+                    {% if entry.BuyerID %}{{ entry.BuyerID }}
+                    {% else %} {{ entry.BuyerId }}
+                    {% endif %}
+                </td>
                 <td>{{ entry.BuyerName }}</td>
-                <td>{{ entry.BuyerCp }}</td>
-                <td>{{ entry.BuyerHt }}</td>
+                <td>
+                    {% if entry.BuyerCp %}{{ entry.BuyerCp }}
+                    {% else %} {{ entry.BuyerInfoCp }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if entry.BuyerCp %}{{ entry.BuyerHt }}
+                    {% else %} {{ entry.BuyerInfoHt }}
+                    {% endif %}
+                </td>
 
                 <td>{{ entry.GoodsName | safe}}</td>
                 <td>{{ entry.GoodsNo }}</td>
