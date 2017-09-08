@@ -8,13 +8,12 @@ $(function() {
     $('#deliver').click(function(e){
         console.log(e)
         e.preventDefault();
-        var orderInfo_invoice = $("input:checked").parents("tr").find("input").serialize();
-        var company = $("input:checked").parents("tr").find("select").serialize();
+        var orderInfo_invoice = $("input:checked").parents("tr").find("input, select").serialize();
+        // var company = $("input:checked").parents("tr").find("select").serialize();
         var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
-        console.log(orderInfo_invoice + "&" + company + "&" + csrf);
         $.post({
                 url: "{% url 'info:todeliver_confirm' %}",
-                data: orderInfo_invoice + "&" + company + "&" + csrf,
+                data: orderInfo_invoice + "&" +  csrf,
                 success: function(result,status,xhr) {
                     if (result['status'] === "ok"){ alert("배송등록 성공"); location.reload(); }
                     else { alert(result['msg']); location.reload(); }

@@ -4,7 +4,7 @@ import requests
 import sys
 from lxml.html import parse, submit_form
 from pprint import pprint
-from scrapy.selector import Selector
+from scrapy import Selector
 from django.utils import timezone
 
 headers = {
@@ -109,7 +109,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
     elif stage == "tocancel":
         return  [('page', '1'),
                  ('limit', '20'),
-                 ('siteGbn', '3'),
+                 ('siteGbn', '1'),
                  ('searchAccount', 'TA'),  # ??
                  ('searchDateType', 'ODD'),
                  ('searchSDT', start),
@@ -121,7 +121,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
                  ('excelInfo', ''),
                  ('searchStatus', 'CR'),  # search requested?
                  ('searchAllYn', 'N'),
-                 ('tabGbn', '3'),
+                 ('tabGbn', '1'),
                  ('SortFeild', 'PayDate'),
                  ('SortType', 'Desc'),
                  ('start', '0'),
@@ -191,6 +191,9 @@ def attach_order_info(entries, account, stage):
         if stage == 'neworder':
             order_info += ',' + ','.join(str(entry[key]) for key in
                 ('SiteIDValue', 'SellerCustNo') )
+        elif stage == 'tocancel':
+            order_info += ',' + ','.join(str(entry[key]) for key in
+                ('SiteIdValue', 'SellerCustNo', 'ClaimReasonCode') )
         elif stage == 'toexchange':
             order_info += ',' + ','.join(str(entry[key]) for key in
                 ('SiteIdValue', 'SellerCustNo') )
@@ -226,7 +229,6 @@ def search(account, stage, start, end,
         resp = sess.post(search_urls[stage],
                   headers=_headers, data=data)
     entries = json.loads(resp.text)['data']
-
     # for entry in entries:
     #     entry['mID'] = mID
 
@@ -254,6 +256,30 @@ def todeliver_confirm(id, pw, site, order_info):
         }
         return sess.post("https://www.esmplus.com/Escrow/Delivery/SetDoShippingGeneral",\
                          data=data)
+
+
+def tocancel_confirm(account, order_info):
+    with requests.Session() as sess:
+        login(sess, account.userid, account.password, account.site)
+        query = "?orderInfos=" + order_info
+        resp = sess.get("https://www.esmplus.com/Escrow/Popup/CancelRequestConfirmCancel"
+                        + query)
+        sel = Selector(text=resp.text)
+        return "\n".join(sel.xpath("//tbody//td//text()").extract())
+
+
+def tocancel_deliver(account, order_info, comp, comp_name, inv):
+    with requests.Session() as sess:
+        login(sess, account.userid, account.password, account.site)
+        query = "?deliveryInfos=" + ",".join([order_info, comp, comp_name, inv])
+        resp = sess.get("http://www.esmplus.com/Escrow/Popup/CancelRequestShipping"
+                        + query)
+        sel = Selector(text=resp.text)
+        # ex) "\n".join(['실패', 'G마켓', '2564302794', '1110120028', '게임악세사리',
+        #        '발송처리 실패 [A : G001,송장 번호 길이가 맞지 않습니다.]', '\xa0'])
+        return "\n".join(sel.xpath("//tbody//td//text()").extract())
+
+
 
 def toreturn_confirm(id, pw, site, order_info):
     """  order_info format

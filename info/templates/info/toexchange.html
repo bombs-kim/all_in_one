@@ -13,13 +13,12 @@
 
         $('#exchange').click(function(e){
             e.preventDefault();
-            var oinfs = $("input:checked").parents("tr").find("input").serialize();
-            var company = $("input:checked").parents("tr").find("select").serialize();
+            var oinfs = $("input:checked").parents("tr").find("input, select").serialize();
             var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
 
             $.post({
                     url: "{% url 'info:toexchange_confirm' %}",
-                    data: oinfs + "&" + company + "&" + csrf,
+                    data: oinfs + "&" + csrf,
                     success: function(result,status,xhr) {
                         if (result['status'] === "ok"){ alert("배송등록 성공\n" + result['msg']);
                             location.reload(); }

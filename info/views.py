@@ -225,9 +225,7 @@ def todeliver_confirm(request):
                 companies[comp[idx]] + "," +
                 inv[idx]
             )
-
     accounts = request.user.master.accounts.all()
-
     success = True
     msg = ""
     for seller_id in ESM_orders:
@@ -253,37 +251,73 @@ def todeliver_confirm(request):
 
 @login_required
 @require_POST
-def toreturn_confirm(request):
-    ESM_order_infos = defaultdict(list)
-    order_infos = request.POST.getlist('orderInfo')
-    sites = {}
+def tocancel_confirm(request):
+    site, seller_id, order_info = request.POST['orderInfo'].split("/")
+    accounts = request.user.master.accounts.all()
+    account = accounts.get(site=site, userid=seller_id)
+    success = True
+    if site == 'ESM':
+        # result is str type
+        result = esm.tocancel_confirm(account, order_info)
+        msg = order_info + ': '
+        if "실패" in result :
+            success = False
+        msg += result
+    else:
+        print("Not implemented")
+    if not success:
+        return JsonResponse({'status': 'fail', 'msg': msg})
+    return JsonResponse({'status':'ok', 'msg': msg})
 
-    for idx, order in enumerate(order_infos):
-        site, seller_id, oinf = order.split("/")
-        sites[seller_id] = site
-        if site == 'ESM':
-            ESM_order_infos[seller_id].append(oinf)
+
+    pass
+
+@login_required
+@require_POST
+def tocancel_deliver(request):
+    site, seller_id, order_info = request.POST['orderInfo'].split("/")
+    order_info = order_info.rsplit(',', 2)[0]
+    comp = request.POST['deliveryComp']  # 택배회사코드
+    comp_name = request.POST['deliveryCompanyName']
+    inv = request.POST['invoiceNo']
 
     accounts = request.user.master.accounts.all()
+    account = accounts.get(site=site, userid=seller_id)
     success = True
-    msg = ""
-    for seller_id in ESM_order_infos:
-        account = accounts.get(userid=seller_id)
-        if sites[seller_id] == 'ESM':
-            for order_info in ESM_order_infos[seller_id]:
-                # result example
-                # {'message': '환불 승인되었습니다.', 'success': True}
-                result = esm.toreturn_confirm(
-                    account.userid, account.password,
-                    account.site, order_info)
-                msg += order_info + ': '
-                                      # string based failure test. vulnerable to changes in the future
-                if not result['success'] or "오류" in result["message"] :
-                    msg += 'Error' + '\n'
-                    success = False
-                msg += result['message'].replace('\n', '') + "\n\n"
-        else:
-            print("Not implemented")
+    if site == 'ESM':
+        # result is str type
+        result = esm.tocancel_deliver(account,
+              order_info, comp, comp_name,inv)
+        msg = order_info + ': '
+        if "실패" in result :
+            success = False
+        msg += result
+    else:
+        print("Not implemented")
+    if not success:
+        return JsonResponse({'status': 'fail', 'msg': msg})
+    return JsonResponse({'status':'ok', 'msg': msg})
+
+@login_required
+@require_POST
+def toreturn_confirm(request):
+    site, seller_id, order_info = request.POST['orderInfo'].split("/")
+    accounts = request.user.master.accounts.all()
+    account = accounts.get(userid=seller_id)
+    success = True
+    if site == 'ESM':
+        # result example
+        # {'message': '환불 승인되었습니다.', 'success': True}
+        result = esm.toreturn_confirm(
+            account.userid, account.password,
+            account.site, order_info)
+        msg = order_info + ': '
+                # string based failure test. vulnerable to changes in the future
+        if not result['success'] or "오류" in result["message"] :
+            success = False
+        msg += result['message']
+    else:
+        print("Not implemented")
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
@@ -292,43 +326,28 @@ def toreturn_confirm(request):
 @login_required
 @require_POST
 def toexchange_confirm(request):
-    ESM_orders = defaultdict(list)
-    order_infos = request.POST.getlist('orderInfo')
-    # Assuming there are on only one comp, and invoice info respectively
-    comps = request.POST.getlist('resendCompCode')
-    invs = request.POST.getlist('invoiceNo')
-    sites = {}
-
-    for idx, order in enumerate(order_infos):
-        site, seller_id, oinf = order.split("/")
-        sites[seller_id] = site
-        if site == "ESM":
-            ESM_orders[seller_id].append(idx)
-            order_infos[idx] = oinf
+    site, seller_id, order_info = request.POST['orderInfo'].split("/")
+    comp = request.POST['resendCompCode']  # 택배회사코드
+    inv = request.POST['invoiceNo']
 
     accounts = request.user.master.accounts.all()
+    account = accounts.get(userid=seller_id)
     success = True
-    msg = ""
-    for seller_id in ESM_orders:
-        account = accounts.get(userid=seller_id)
-        if sites[seller_id] == 'ESM':
-            for idx in ESM_orders[seller_id]:
-                # result example
-                # {'message': '재발송 처리되었습니다. \n\n
-                #  교환 재발송 처리된 주문건은 배송중 메뉴에서 확인하시기 바랍니다.',
-                #  'success': True}
-                result = esm.toexchange_confirm(
-                    account.userid, account.password, account.site,
-                    order_infos[idx], comps[idx], invs[idx])
-                              # string based failure test.
-                              # vulnerable to change in the future
-                msg += order_infos[idx] + ': '
-                if not result['success'] or "오류" in result["message"] :
-                    msg += 'Error' + '\n'
-                    success = False
-                msg += result['message'].replace('\n', '') + "\n\n"
-        else:
-            print("Not implemented")
+    if site == 'ESM':
+        # result example
+        # {'message': '재발송 처리되었습니다. \n\n
+        #  교환 재발송 처리된 주문건은 배송중 메뉴에서 확인하시기 바랍니다.',
+        #  'success': True}
+        result = esm.toexchange_confirm(
+            account.userid, account.password, account.site,
+            order_info, comp, inv)
+        msg = order_info + ': '
+                # string based failure test. vulnerable to changes in the future
+        if not result['success'] or "오류" in result["message"] :
+            success = False
+        msg += result['message']
+    else:
+        print("Not implemented")
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})

@@ -5,28 +5,54 @@
 {% block script %}
 <script>
     $(function() {
-        $('#confirm').on('submit', function(e){
-            console.log(e)
+        // Currently, ESM allows only one row to be sellected
+        // so we apply the same restriction to the checkboxes
+        $('input:checkbox').on('click', function() {
+            $('input:checkbox').not(this).prop('checked', false);
+        });
+
+        $('#cancel').click(function(e){
             e.preventDefault();
-            // var orderInfo_invoice = $("input:checked").parents("tr").find("input").serialize();
-            // var company = $("input:checked").parents("tr").find("select").serialize();
-            // var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
-            // console.log(orderInfo_invoice + "&" + company + "&" + csrf);
-            // $.post({
-            //         url: "{% url 'info:todeliver_confirm' %}",
-            //         data: orderInfo_invoice + "&" + company + "&" + csrf,
-            //         success: function(result,status,xhr) {
-            //             if (result['status'] === "ok"){ alert("배송등록 성공"); location.reload(); }
-            //             else { alert(result['msg']); location.reload(); }
-            //         },
-            // });
+            var oinf = $("input:checked").parents("tr").find("input, select").serialize();
+            var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
+            $.post({
+                    url: "{% url 'info:tocancel_confirm' %}",
+                    data: oinf + "&" + csrf,
+                    success: function(result,status,xhr) {
+                        if (result['status'] === "ok"){ alert("취소처리 성공\n" + result['msg']);
+                            location.reload(); }
+                        else { alert(result['msg']); location.reload(); }
+                    },
+            });
+        });
+
+        $('#deliver').click(function(e){
+            e.preventDefault();
+            // escaped company name is needed for confirming
+            var company_name = $("input:checked").parents("tr").find("select :selected").text();
+            company_name = escape(company_name);
+            $("input:checked").parents("tr").find("input[name='deliveryCompanyName']").val(company_name)
+
+            var oinf = $("input:checked").parents("tr").find("input, select").serialize();
+            var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
+
+            $.post({
+                    url: "{% url 'info:tocancel_deliver' %}",
+                    data: oinf + "&" + csrf,
+                    success: function(result,status,xhr) {
+                        if (result['status'] === "ok"){ alert("배송등록 성공\n" + result['msg']);
+                            location.reload(); }
+                        else { alert(result['msg']); location.reload(); }
+                    },
+            });
         });
     });
 </script>
 {% endblock %}
 
-{% block submit_value %}
-취소처리
+{% block buttons %}
+<input type="submit" id="cancel" style="cursor:pointer" value="취소처리"></input>
+<input type="submit" id="deliver" style="cursor:pointer" value="발송처리"></input>
 {% endblock %}
 
 
@@ -34,6 +60,8 @@
 <td>상태</td>
 <td>취소요청일</td>
 <td>취소사유</td>
+<th style="color:blue">택배사 선택</th>
+<th style="color:blue">송장번호</th>
 {% endblock %}
 
 
@@ -41,6 +69,29 @@
 <td>{{ entry.StatusName }}</td>
 <td>{{ entry.ClaimRegDate }}</td>
 <td>{{ entry.ClaimReason }}</td>
+<td>
+    <select name="deliveryComp">
+        <option value="10013">CJ택배</option>
+        <option value="10001">대한통운</option>
+        <option value="10007">한진택배</option>
+        <option value="10005">우체국택배</option>
+        <option value="10008">롯데택배</option>
+        <option value="10075">롯데국제특송</option>
+        <option value="10003">로젠택배</option>
+        <option value="10004">KG로지스</option>
+        <option value="10073">편의점택배(GS25)</option>
+        <option value="10019">GTX로지스</option>
+        <option value="10011">하나로택배</option>
+        <option value="10015">일양택배</option>
+        <option value="10017">천일택배</option>
+        <option value="10014">대신택배</option>
+    </select>
+    <input type="text" name="deliveryCompanyName" style="display: none;">
+</td>
+<td>
+    <input type="text" name="invoiceNo" value="">
+</td>
+
 {% endblock %}
 
 
@@ -48,4 +99,75 @@
 <td>-</td>
 <td>-</td>
 <td>-</td>
+<td>-</td>
+<td>-</td>
 {% endblock %}
+
+
+{% comment %}
+ESM
+<select name="ddldeliveryComp" style="width: 140px;">
+    <option value="0" selected="selected">선택</option>
+    <option value="10013">CJ택배</option>
+    <option value="10001">대한통운</option>
+    <option value="10007">한진택배</option>
+    <option value="10005">우체국택배</option>
+    <option value="10008">롯데택배</option>
+    <option value="10075">롯데국제특송</option>
+    <option value="10003">로젠택배</option>
+    <option value="10004">KG로지스</option>
+    <option value="10073">편의점택배(GS25)</option>
+    <option value="10019">GTX로지스</option>
+    <option value="10011">하나로택배</option>
+    <option value="10015">일양택배</option>
+    <option value="10017">천일택배</option>
+    <option value="10014">대신택배</option>
+    <option value="10016">경동택배</option>
+    <option value="10074">합동택배</option>
+    <option value="10009">SC로지스</option>
+    <option value="10022">DHL</option>
+    <option value="10023">FEDEX</option>
+    <option value="10072">CJ국제특송</option>
+    <option value="10020">한진정기화물</option>
+    <option value="10021">OCS KOREA</option>
+    <option value="10006">등기우편</option>
+    <option value="10024">일반우편</option>
+    <option value="10025">퀵서비스</option>
+    <option value="10035">방문수령</option>
+    <option value="10027">LG전자물류</option>
+    <option value="10028">삼성전자물류</option>
+    <option value="10029">대우전자물류</option>
+    <option value="10076">위니아물류</option>
+    <option value="10030">기타가전물류</option>
+    <option value="10031">가구직배송</option>
+    <option value="10032">자체배송</option>
+    <option value="10036">EMS</option>
+    <option value="10037">양양택배</option>
+    <option value="10038">(소형항공)우체국</option>
+    <option value="10040">한국택배</option>
+    <option value="10041">USPS</option>
+    <option value="10042">UPS</option>
+    <option value="10039">호남택배</option>
+    <option value="10043">GSMNTON</option>
+    <option value="10044">WarpEx</option>
+    <option value="10045">성원글로벌</option>
+    <option value="10046">하이브랜로지스</option>
+    <option value="10047">국제정보통신</option>
+    <option value="10048">홈플러스택배</option>
+    <option value="10049">영풍문고택배</option>
+    <option value="10050">건영택배</option>
+    <option value="10051">WIZWA</option>
+    <option value="10052">FHL express</option>
+    <option value="10053">Airboy express</option>
+    <option value="10054">(해외)우체국</option>
+    <option value="10055">(해외)DHL</option>
+    <option value="10056">(해외)DPD</option>
+    <option value="10061">(통합)한진택배</option>
+    <option value="10071">(마트)CJ택배</option>
+    <option value="10077">SLX</option>
+    <option value="10078">동부대우전자</option>
+    <option value="10079">범한판토스</option>
+    <option value="10080">GPS LOGIX</option>
+    <option value="10081">한의사랑택배</option>
+</select>
+{% endcomment %}
