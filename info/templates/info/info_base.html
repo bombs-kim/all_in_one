@@ -23,7 +23,8 @@
         </form>
     </div>
     <form id="confirm" action="{% block form_action %}{% endblock %}" method="post">
-        <input type="submit" value="{% block submit_value %}{% endblock %}">
+        {# <input type="submit" value="{% block submit_value %}{% endblock %}">#}
+        {% block buttons %}{% endblock %}
         {% csrf_token %}
         <table>
             <tr>

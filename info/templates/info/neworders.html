@@ -5,20 +5,29 @@
 {% block script %}
 <script>
 $(function() {
-     $('#confirm').ajaxForm(function() {
-         alert("주문확인 성공.");
-         location.reload();
-     });
- });
+    $('#neworder_confirm').click(function(e){
+        e.preventDefault();
+
+        var oinfs = $("input:checked").parents("tr").find("input").serialize();
+        var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
+
+        $.post({
+             url: "{% url 'info:neworder_confirm' %}",
+             data: oinfs + "&" + csrf,
+             success: function(result,status,xhr) {
+                 if (result['status'] === "ok"){
+                     alert("주문확인 성공"); }
+                 else {alert("주문확인 실패 " + result['status']); }
+                 location.reload();
+             },
+        });
+    });
+});
 </script>
 {% endblock %}
 
-{% block form_action %}
-{% url 'info:neworder_confirm' %}
-{% endblock %}
-
-{% block submit_value %}
-주문확인
+{% block buttons %}
+<input type="submit" id="neworder_confirm" style="cursor:pointer" value="주문확인"></input>
 {% endblock %}
 
 {% block custom_fields_label %}

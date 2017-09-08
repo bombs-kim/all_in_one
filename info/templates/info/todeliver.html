@@ -5,7 +5,7 @@
 {% block script %}
 <script>
 $(function() {
-    $('#confirm').on('submit', function(e){
+    $('#deliver').click(function(e){
         console.log(e)
         e.preventDefault();
         var orderInfo_invoice = $("input:checked").parents("tr").find("input").serialize();
@@ -21,12 +21,13 @@ $(function() {
                 },
         });
     });
- });
+});
 </script>
 {% endblock %}
 
-{% block submit_value %}
-배송처리
+
+{% block buttons %}
+<input type="submit" id="deliver" style="cursor:pointer" value="배송처리"></input>
 {% endblock %}
 
 
@@ -71,6 +72,7 @@ $(function() {
 {% endblock %}
 
 {% comment %}
+ESM
 <option value="10013">CJ택배</option>
 <option value="10001">대한통운</option>
 <option value="10007">한진택배</option>

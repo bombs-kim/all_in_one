@@ -1,0 +1,51 @@
+{% extends "info/info_base.html" %}
+
+{% block title %} 취소대기 조회 {% endblock %}
+
+{% block script %}
+<script>
+    $(function() {
+        $('#confirm').on('submit', function(e){
+            console.log(e)
+            e.preventDefault();
+            // var orderInfo_invoice = $("input:checked").parents("tr").find("input").serialize();
+            // var company = $("input:checked").parents("tr").find("select").serialize();
+            // var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
+            // console.log(orderInfo_invoice + "&" + company + "&" + csrf);
+            // $.post({
+            //         url: "{% url 'info:todeliver_confirm' %}",
+            //         data: orderInfo_invoice + "&" + company + "&" + csrf,
+            //         success: function(result,status,xhr) {
+            //             if (result['status'] === "ok"){ alert("배송등록 성공"); location.reload(); }
+            //             else { alert(result['msg']); location.reload(); }
+            //         },
+            // });
+        });
+    });
+</script>
+{% endblock %}
+
+{% block submit_value %}
+취소처리
+{% endblock %}
+
+
+{% block custom_fields_label %}
+<td>상태</td>
+<td>취소요청일</td>
+<td>취소사유</td>
+{% endblock %}
+
+
+{% block custom_fields_esm %}
+<td>{{ entry.StatusName }}</td>
+<td>{{ entry.ClaimRegDate }}</td>
+<td>{{ entry.ClaimReason }}</td>
+{% endblock %}
+
+
+{% block custom_fields_storefarm %}
+<td>-</td>
+<td>-</td>
+<td>-</td>
+{% endblock %}

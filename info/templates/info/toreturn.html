@@ -6,12 +6,12 @@
 <script>
     $(function() {
         // Currently, ESM allows only one row to be sellected
-        // so we may apply the same restriction to the checkboxes
-        // $('input:checkbox').on('click', function() {
-        //     $('input:checkbox').not(this).prop('checked', false);
-        // });
+        // so we apply the same restriction to the checkboxes
+        $('input:checkbox').on('click', function() {
+            $('input:checkbox').not(this).prop('checked', false);
+        });
 
-        $('#confirm').on('submit', function(e){
+        $('#return').click(function(e){
             e.preventDefault();
 
             var oinfs = $("input:checked").parents("tr").find("input").serialize();
@@ -31,8 +31,8 @@
 </script>
 {% endblock %}
 
-{% block submit_value %}
-반품처리
+{% block buttons %}
+<input type="submit" id="return" style="cursor:pointer" value="반품처리"></input>
 {% endblock %}
 
 {% block custom_fields_label %}
