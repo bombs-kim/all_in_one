@@ -12,7 +12,7 @@ $(function() {
         // var company = $("input:checked").parents("tr").find("select").serialize();
         var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
         $.post({
-                url: "{% url 'info:todeliver_confirm' %}",
+                url: "{% url 'info:deliver_confirm' %}",
                 data: orderInfo_invoice + "&" +  csrf,
                 success: function(result,status,xhr) {
                     if (result['status'] === "ok"){ alert("배송등록 성공"); location.reload(); }
@@ -56,6 +56,7 @@ $(function() {
 {% block custom_fields_storefarm %}
 <td>
     <select name="company">
+        <option value="CH1">기타택배</option>
         <option value="CJGLS">CJ대한통운</option>
         <option value="EPOST">우체국택배</option>
         <option value="HANJIN">한진택배</option>

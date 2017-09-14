@@ -66,7 +66,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
                 ('start', '0'),
                 ('searchTransPolicyType', ''),
                ]
-    elif stage == 'todeliver':
+    elif stage == 'deliver':
         return [('page', '1'),
                 ('limit', '100'),
                 ('siteGbn', '0'),
@@ -87,7 +87,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
                 ('searchDistrType', 'AL'),
                 ('searchTransPolicyType', ''),
                ]
-    elif stage == 'sending':
+    elif stage == 'deliverstatus':
         return [('page', '1'),
                 ('limit', '20'),
                 ('siteGbn', '0'),
@@ -106,7 +106,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
                 ('start', '0'),
                 ('searchTransPolicyType', ''),
                ]
-    elif stage == "tocancel":
+    elif stage == "cancel":
         return  [('page', '1'),
                  ('limit', '20'),
                  ('siteGbn', '1'),
@@ -127,7 +127,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
                  ('start', '0'),
                  ('searchDistrType', 'AL'),
                 ]
-    elif stage == "toreturn":
+    elif stage == "refund":
         return [('page', '1'),
                 ('limit', '20'),
                 ('siteGbn', '1'),
@@ -149,7 +149,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
                 ('searchRewardStatus', 'NN'),
                 ('searchFastRefundYn', ''),
                ]
-    elif stage == "toexchange":
+    elif stage == "exchange":
         return [('page', '1'),
                 ('limit', '100'),
                 ('siteGbn', '1'),
@@ -175,12 +175,13 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
 
 search_urls = {
     'neworder': 'https://www.esmplus.com/Escrow/Order/NewOrderSearch',
-    'todeliver': 'https://www.esmplus.com/Escrow/Delivery/GeneralDeliverySearch',
-    'sending': 'https://www.esmplus.com/Escrow/Delivery/GetSendingSearch',
-    'tocancel': 'https://www.esmplus.com/Escrow/Claim/CancelManagementSearch',
-    'toreturn': 'https://www.esmplus.com/Escrow/Claim/ReturnManagementSearch',
-    'toexchange': 'https://www.esmplus.com/Escrow/Claim/ExchangeManagementSearch',
+    'deliver': 'https://www.esmplus.com/Escrow/Delivery/GeneralDeliverySearch',
+    'deliverstatus': 'https://www.esmplus.com/Escrow/Delivery/GetSendingSearch',
+    'cancel': 'https://www.esmplus.com/Escrow/Claim/CancelManagementSearch',
+    'refund': 'https://www.esmplus.com/Escrow/Claim/ReturnManagementSearch',
+    'exchange': 'https://www.esmplus.com/Escrow/Claim/ExchangeManagementSearch',
 }
+
 
 # Used for confirming
 def attach_order_info(entries, account, stage):
@@ -191,13 +192,13 @@ def attach_order_info(entries, account, stage):
         if stage == 'neworder':
             order_info += ',' + ','.join(str(entry[key]) for key in
                 ('SiteIDValue', 'SellerCustNo') )
-        elif stage == 'tocancel':
+        elif stage == 'cancel':
             order_info += ',' + ','.join(str(entry[key]) for key in
                 ('SiteIdValue', 'SellerCustNo', 'ClaimReasonCode') )
-        elif stage == 'toexchange':
+        elif stage == 'exchange':
             order_info += ',' + ','.join(str(entry[key]) for key in
                 ('SiteIdValue', 'SellerCustNo') )
-        elif stage == 'toreturn':
+        elif stage == 'refund':
             order_info += ',' + ','.join(str(entry[key]) for key in
                 ('SiteIdValue', 'SellerCustNo', 'ReturnInvoiceNo') )
             delivery_comp = str(
@@ -219,9 +220,9 @@ def search(account, stage, start, end,
         mID = login(sess, account.userid, account.password, account.site)
         data = get_search_condition(
             stage, start, end, searchKey, searchKeyword)
-        if stage in ('toreturn', 'toexchange'):
+        if stage in ('refund', 'exchange'):
             data.append( ('searchAccount', "TA^" + mID) )
-        elif stage == 'tocancel':
+        elif stage == 'cancel':
             _headers = dict(_headers)
             _headers["Referer"] = 'https://www.esmplus.com/Escrow/Claim/CancelRequestManagement?menuCode=TDM115'
         else:
@@ -247,7 +248,7 @@ def neworder_confirm(id, pw, site, order_info):
                          data=data)
 
 
-def todeliver_confirm(id, pw, site, order_info):
+def deliver_confirm(id, pw, site, order_info):
     with requests.Session() as sess:
         mID = login(sess, id, pw, site)
         data = {
@@ -258,7 +259,7 @@ def todeliver_confirm(id, pw, site, order_info):
                          data=data)
 
 
-def tocancel_confirm(account, order_info):
+def cancel_confirm(account, order_info):
     with requests.Session() as sess:
         login(sess, account.userid, account.password, account.site)
         query = "?orderInfos=" + order_info
@@ -268,7 +269,7 @@ def tocancel_confirm(account, order_info):
         return "\n".join(sel.xpath("//tbody//td//text()").extract())
 
 
-def tocancel_deliver(account, order_info, comp, comp_name, inv):
+def cancel_deliver(account, order_info, comp, comp_name, inv):
     with requests.Session() as sess:
         login(sess, account.userid, account.password, account.site)
         query = "?deliveryInfos=" + ",".join([order_info, comp, comp_name, inv])
@@ -281,7 +282,7 @@ def tocancel_deliver(account, order_info, comp, comp_name, inv):
 
 
 
-def toreturn_confirm(id, pw, site, order_info):
+def refund_confirm(id, pw, site, order_info):
     """  order_info format
        OrderNo,SiteIdValue,SellerCustNo,returnInvoiceNo,returnDeliveryComp
        ex) 2008278271,2,111421746,,
@@ -303,7 +304,7 @@ def toreturn_confirm(id, pw, site, order_info):
         return json.loads(resp.text)
 
 
-def toexchange_confirm(id, pw, site, order_info,
+def exchange_confirm(id, pw, site, order_info,
                        comp, invoice):
     """ order_info format
       OrderNo,SiteIdValue,SellerCustNo
@@ -324,4 +325,4 @@ def toexchange_confirm(id, pw, site, order_info,
         form.fields['resendCompCode'] = comp
         form.fields['resendInvoiceNo'] = invoice
         resp = sess.post(form.action, data=dict(form.fields))
-        return json.loads(resp.text)
+        return json.loads(resp.tex

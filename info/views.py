@@ -1,5 +1,4 @@
 import json
-import requests
 from collections import defaultdict
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -35,7 +34,7 @@ from datetime import datetime
 import pytz
 tz = pytz.timezone("Asia/Seoul")
 def fromtimestamp(epoch):
-    return datetime.fromtimestamp(1504148557, tz=tz)
+    return datetime.fromtimestamp(epoch//1000, tz=tz)
 
 
 def get_entries(account, stage, start=None, end=None,
@@ -49,7 +48,7 @@ def get_entries(account, stage, start=None, end=None,
         end = timezone.now().date()
 
     if account.site in ('ESM', 'GMKT', 'AUC'):
-        # search = ESM_exchange_search if stage == "toexchange" else esm.search
+        # search = ESM_exchange_search if stage == "exchange" else esm.search
         entries = esm.search(
             account, stage,
             start, end, searchKey, searchKeyword)
@@ -63,11 +62,11 @@ def get_entries(account, stage, start=None, end=None,
 
     elif account.site == "STOREFARM":
         entries = storefarm.search(
-            account.userid, account.password, stage, account.site,
+            account, stage,
             start, end, searchKey, searchKeyword)
         # entries = entries["htReturnValue"]["pagedResult"]["content"]
         for entry in entries:
-            if stage == 'sending':
+            if stage == 'deliverstatus':
                 dt1 = fromtimestamp(entry['PRODUCT_ORDER_PAY_YMDT'])
                 # To be used as the sorting criteria
                 entry['_datetime'] = dt1
@@ -80,11 +79,15 @@ def get_entries(account, stage, start=None, end=None,
                 # To be used as the sorting criteria
                 entry['_datetime'] = dt
                 entry['PAY_PAY_YMDT'] = dt.strftime('%Y-%m-%d %H:%M:%S')
-                if stage == 'toreturn':
+                if stage == 'cancel':
+                    entry['CLAIM_REQUEST_OPERATION_YMDT_CANCEL'] = fromtimestamp(
+                        entry['CLAIM_REQUEST_OPERATION_YMDT_CANCEL']
+                        ).strftime('%Y-%m-%d %H:%M:%S')
+                elif stage == 'refund':
                     entry['CLAIM_REQUEST_OPERATION_YMDT_RETURN'] = fromtimestamp(
                         entry['CLAIM_REQUEST_OPERATION_YMDT_RETURN']
                         ).strftime('%Y-%m-%d %H:%M:%S')
-                elif stage == 'toexchange':
+                elif stage == 'exchange':
                     entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE'] = fromtimestamp(
                         entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE']
                         ).strftime('%Y-%m-%d %H:%M:%S')
@@ -119,59 +122,59 @@ def neworder(request):
     search_form, entries = get_form_and_entries(
         request, accounts, "neworder")
     return render(request,
-                  'info/neworders.html',
+                  'info/neworder.html',
                   {'entries': entries,
                    'search_form': search_form})
 
 
 @login_required
-def todeliver(request):
+def deliver(request):
     accounts = request.user.master.accounts.all()
     search_form, entries = get_form_and_entries(
-        request, accounts, "todeliver")
+        request, accounts, "deliver")
     return render(request,
-                  'info/todeliver.html',
+                  'info/deliver.html',
                   {'entries': entries,
                    'search_form': search_form})
 
 
 @login_required
-def sending(request):
+def deliverstatus(request):
     accounts = request.user.master.accounts.all()
     search_form, entries = get_form_and_entries(
-        request, accounts, "sending")
+        request, accounts, "deliverstatus")
     return render(request,
-                  'info/sending.html',
+                  'info/deliverstatus.html',
                   {'entries': entries,
                    'search_form': search_form})
 
 @login_required
-def tocancel(request):
+def cancel(request):
     accounts = request.user.master.accounts.all()
     search_form, entries = get_form_and_entries(
-        request, accounts, "tocancel")
+        request, accounts, "cancel")
     return render(request,
-                  'info/tocancel.html',
+                  'info/cancel.html',
                   {'entries': entries,
                    'search_form': search_form})
 
 @login_required
-def toreturn(request):
+def refund(request):
     accounts = request.user.master.accounts.all()
     search_form, entries = get_form_and_entries(
-        request, accounts, "toreturn")
+        request, accounts, "refund")
     return render(request,
-                  'info/toreturn.html',
+                  'info/refund.html',
                   {'entries': entries,
                    'search_form': search_form})
 
 @login_required
-def toexchange(request):
+def exchange(request):
     accounts = request.user.master.accounts.all()
     search_form, entries = get_form_and_entries(
-        request, accounts, "toexchange")
+        request, accounts, "exchange")
     return render(request,
-                  'info/toexchange.html',
+                  'info/exchange.html',
                   {'entries': entries,
                    'search_form': search_form})
 
@@ -179,12 +182,15 @@ def toexchange(request):
 @require_POST
 def neworder_confirm(request):
     ESM_orders = defaultdict(list)
+    STOREFARM_oders = defaultdict(list)
     orders = request.POST.getlist('orderInfo')
 
     for order in orders:
         site, seller_id, order_info = order.split("/")
         if site == "ESM":
             ESM_orders[seller_id].append(order_info)
+        elif site == "STOREFARM":
+            STOREFARM_oders[seller_id].append(order_info)
 
     accounts = request.user.master.accounts.all()
 
@@ -196,6 +202,15 @@ def neworder_confirm(request):
             account.userid, account.password,
             account.site, order_info)
         # Do nothing with resp currently
+
+    for seller_id in STOREFARM_oders:
+        account = accounts.get(userid=seller_id)
+        order_info = ",".join(STOREFARM_oders[seller_id])
+        resp = storefarm.neworder_confirm(
+            account.userid, account.password,
+            account.site, order_info)
+        # Do nothing with resp currently
+
     return JsonResponse({'status':'ok'})
 
 # ESM
@@ -210,21 +225,29 @@ companies = {
 
 @login_required
 @require_POST
-def todeliver_confirm(request):
-    ESM_orders = defaultdict(list)
+def deliver_confirm(request):
     orders = request.POST.getlist('orderInfo')
-    comp = request.POST.getlist('company')
-    inv = request.POST.getlist('invoiceNo')
+    comps = request.POST.getlist('company')
+    invs = request.POST.getlist('invoiceNo')
+
+    ESM_orders = defaultdict(list)
+    STOREFARM_orders = defaultdict(list)
 
     for idx, order in enumerate(orders):
         site, seller_id, order_number = order.split("/")
         if site == "ESM":
             ESM_orders[seller_id].append(
                 order_number + "," +
-                comp[idx] + "," +
-                companies[comp[idx]] + "," +
-                inv[idx]
+                comps[idx] + "," +
+                companies[comps[idx]] + "," +
+                invs[idx]
             )
+        elif site == "STOREFARM":
+            STOREFARM_orders[seller_id].append(
+                # tuple type
+                (order_number, comps[idx], invs[idx])
+            )
+
     accounts = request.user.master.accounts.all()
     success = True
     msg = ""
@@ -233,7 +256,7 @@ def todeliver_confirm(request):
         # order_info format: order_number,company_num,company,invoice
         # ex) 2008278271,10013,CJ택배,1234567890^2008278271,10013,CJ택배,1234567890
         order_info = '^'.join(ESM_orders[seller_id])
-        resp = esm.todeliver_confirm(
+        resp = esm.deliver_confirm(
             account.userid, account.password,
             account.site, order_info)
         # example response
@@ -241,9 +264,23 @@ def todeliver_confirm(request):
         # note that 'success' value is still True!
         j = json.loads(resp.text)
                               # string based failure test. vulnerable to change in the future
-        if not j['success'] or "오류" in j["message"] :
+        if not j['success'] or '오류' in j['message'] :
             success = False
-        msg += j['message'] + "\n"
+        msg += j['message'] + '\n'
+
+    for seller_id in STOREFARM_orders:
+        account = accounts.get(userid=seller_id)
+        resp = storefarm.deliver_confirm(
+            account.userid, account.password,
+            STOREFARM_orders[seller_id])
+        try:
+            j = json.loads(resp.text)
+            if not j['bSuccess']:
+                success = False
+                msg += j['htReturnValue']['results'][-1]['message']  + '\n'
+        except:
+            pass
+
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
@@ -251,56 +288,68 @@ def todeliver_confirm(request):
 
 @login_required
 @require_POST
-def tocancel_confirm(request):
+def cancel_confirm(request):
     site, seller_id, order_info = request.POST['orderInfo'].split("/")
     accounts = request.user.master.accounts.all()
     account = accounts.get(site=site, userid=seller_id)
     success = True
+    msg = ''
     if site == 'ESM':
         # result is str type
-        result = esm.tocancel_confirm(account, order_info)
+        result = esm.cancel_confirm(account, order_info)
         msg = order_info + ': '
         if "실패" in result :
             success = False
         msg += result
-    else:
-        print("Not implemented")
+    elif site == 'STOREFARM':
+        resp = storefarm.cancel_confirm(
+            account.userid, account.password, order_info)
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
 
 
-    pass
-
 @login_required
 @require_POST
-def tocancel_deliver(request):
+def cancel_deliver(request):
     site, seller_id, order_info = request.POST['orderInfo'].split("/")
     order_info = order_info.rsplit(',', 2)[0]
     comp = request.POST['deliveryComp']  # 택배회사코드
-    comp_name = request.POST['deliveryCompanyName']
+    comp_name = request.POST.get('deliveryCompanyName')
     inv = request.POST['invoiceNo']
 
     accounts = request.user.master.accounts.all()
     account = accounts.get(site=site, userid=seller_id)
-    success = True
+    msg = order_info + ': '
     if site == 'ESM':
+        success = True
         # result is str type
-        result = esm.tocancel_deliver(account,
+        result = esm.cancel_deliver(account,
               order_info, comp, comp_name,inv)
-        msg = order_info + ': '
         if "실패" in result :
             success = False
         msg += result
+    elif site == 'STOREFARM':
+        success = False
+        resp = storefarm.cancel_deliver(
+            account, order_info, comp, inv)
+        try:
+            j = json.loads(resp.text)
+            if j['bSuccess']:
+                success = True
+        except:
+            pass
+        msg += resp.text
     else:
-        print("Not implemented")
+        success = False
+        msg += "Not implemented"
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
 
 @login_required
 @require_POST
-def toreturn_confirm(request):
+def refund_confirm(request):
     site, seller_id, order_info = request.POST['orderInfo'].split("/")
     accounts = request.user.master.accounts.all()
     account = accounts.get(userid=seller_id)
@@ -308,7 +357,7 @@ def toreturn_confirm(request):
     if site == 'ESM':
         # result example
         # {'message': '환불 승인되었습니다.', 'success': True}
-        result = esm.toreturn_confirm(
+        result = esm.refund_confirm(
             account.userid, account.password,
             account.site, order_info)
         msg = order_info + ': '
@@ -325,7 +374,7 @@ def toreturn_confirm(request):
 
 @login_required
 @require_POST
-def toexchange_confirm(request):
+def exchange_confirm(request):
     site, seller_id, order_info = request.POST['orderInfo'].split("/")
     comp = request.POST['resendCompCode']  # 택배회사코드
     inv = request.POST['invoiceNo']
@@ -338,7 +387,7 @@ def toexchange_confirm(request):
         # {'message': '재발송 처리되었습니다. \n\n
         #  교환 재발송 처리된 주문건은 배송중 메뉴에서 확인하시기 바랍니다.',
         #  'success': True}
-        result = esm.toexchange_confirm(
+        result = esm.exchange_confirm(
             account.userid, account.password, account.site,
             order_info, comp, inv)
         msg = order_info + ': '

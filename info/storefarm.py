@@ -1,8 +1,10 @@
-import io
 import json
 import js2py
 import requests
 import sys
+from datetime import datetime
+from lxml.html import parse, submit_form
+
 from lxml.html import parse, submit_form
 from pprint import pprint
 from scrapy.selector import Selector
@@ -71,12 +73,12 @@ Naver Storefarm json response structure
 # 전체 stages
 # 발주/발송 관리
 #  -'NEW_ORDER': 신규주문 => neworder
-#  -'PLACE_ORDER': 발주확인 => todeliver
-#  -'PLACE_ORDER_RELEASE': 발주확인해제 ! 얘가 문제 => todeliver_release
+#  -'PLACE_ORDER': 발주확인 => deliver
+#  -'PLACE_ORDER_RELEASE': 발주확인해제 ! 얘가 문제 => deliver_release
 # 배송중 delivering
 # 취소 cancel
-# 반품 toreturn
-# 교환 toexchange
+# 반품 refund
+# 교환 exchange
 
 # # ('ON', '주문번호'), # Only supported for global search
 # ('GN', '상품번호'),
@@ -95,8 +97,8 @@ get_storefarm_search_type_from_key = {
 
 get_storefarm_status_from_stage = {
     'neworder': 'NEW_ORDER',
-    'todeliver': 'PLACE_ORDER',
-    'todeliver_release': 'PLACE_ORDER_RELEASE',
+    'deliver': 'PLACE_ORDER',
+    'deliver_release': 'PLACE_ORDER_RELEASE',
 }
 
 def get_search_condition1(stage, start, end, searchKey, searchKeyword):
@@ -107,7 +109,7 @@ def get_search_condition1(stage, start, end, searchKey, searchKeyword):
     if searchKeyword == '':
         search_type = ''
                 # These three stages share the same form
-    if stage in ('neworder', 'todeliver', 'todeliver_release'):
+    if stage in ('neworder', 'deliver', 'deliver_release'):
         data = [
           ('orderStatus', 'WAITING_DISPATCH'),
           ('detailedOrderStatus', get_storefarm_status_from_stage[stage]),
@@ -125,7 +127,7 @@ def get_search_condition1(stage, start, end, searchKey, searchKeyword):
           ('sort.direction', 'DESC'),
           ('onlyValidation', 'true'),
         ]
-    elif stage == "sending":
+    elif stage == "deliverstatus":
         data = [
           ('orderStatus', 'ALL'),
           ('detailedOrderStatus', 'ALL'),
@@ -144,13 +146,19 @@ def get_search_condition1(stage, start, end, searchKey, searchKeyword):
     # override some fields
     if search_type == "PRODUCT_ORDER_NO":
         pass
+
     return data
 
 # For now searchtype and searchkey is not used
-def get_search_condition2(type, status, start, end):
-    status_field = 'productOrder.lastClaim.claimStatus' if type == 'toreturn'\
-                    else 'claimStatus'
-    params = (('range.type', type),
+def get_search_condition2(stage, status, start, end):
+    status_field =  'claimStatus' if stage == 'exchange'\
+                    else 'productOrder.lastClaim.claimStatus'
+    types = {
+        'cancel': 'CLAIM_REQUEST',
+        'refund': 'RETURN_REQUEST',
+        'exchange': 'EXCHANGE_REQUEST'}
+
+    params = (('range.type', types[stage]),
         ('range.fromDate', start),
         ('range.toDate', end),
         (status_field, status),
@@ -162,39 +170,59 @@ def get_search_condition2(type, status, start, end):
     return params
 
 
-# sess = requests.session()
-# login(sess,ID,PW)
-# resp = sess.post('https://sell.storefarm.naver.com/o/n/sale/delivery/json', headers=headers, data=data)
-# j = json.loads(resp.text)
-
 search_urls = {
     'neworder': 'https://sell.storefarm.naver.com/o/n/sale/delivery/json',
-    'todeliver': 'https://sell.storefarm.naver.com/o/n/sale/delivery/json',
-    'sending': 'https://sell.storefarm.naver.com/o/n/sale/delivery/situation/json',
-    'toreturn': 'https://sell.storefarm.naver.com/o/claim/return/json',
-    'toexchange': 'https://sell.storefarm.naver.com/o/claim/exchange/json',
+    'deliver': 'https://sell.storefarm.naver.com/o/n/sale/delivery/json',
+    'deliverstatus': 'https://sell.storefarm.naver.com/o/n/sale/delivery/situation/json',
+    'cancel': 'https://sell.storefarm.naver.com/o/claim/cancel/json',
+    'refund': 'https://sell.storefarm.naver.com/o/claim/return/json',
+    'exchange': 'https://sell.storefarm.naver.com/o/claim/exchange/json',
 }
 
+# Used for confirming
+def attach_order_info(entries, account, stage):
+    # SiteIDValue and SiteIdValue are two different keys
+    for entry in entries:
+        order_info = '/'.join(str(val) for val in
+                              [account.site, account.userid, entry['PRODUCT_ORDER_ID']]  )
+        # if stage == 'neworder':
+        #     order_info += ',' + ','.join(str(entry[key]) for key in
+        #         ('SiteIDValue', 'SellerCustNo') )
+        # elif stage == 'cancel':
+        #     order_info += ',' + ','.join(str(entry[key]) for key in
+        #         ('SiteIdValue', 'SellerCustNo', 'ClaimReasonCode') )
+        # elif stage == 'exchange':
+        #     order_info += ',' + ','.join(str(entry[key]) for key in
+        #         ('SiteIdValue', 'SellerCustNo') )
+        # elif stage == 'refund':
+        #     order_info += ',' + ','.join(str(entry[key]) for key in
+        #         ('SiteIdValue', 'SellerCustNo', 'ReturnInvoiceNo') )
+        #     delivery_comp = str(
+        #         entry['ReturnDeliveryComp']
+        #         ) if entry['ReturnDeliveryComp'] else ''
+        #     order_info += ',' + delivery_comp
+        entry['orderInfo__'] = order_info
 
-def search(id, pw, stage, site, start, end,
+def search(account, stage, start, end,
                  searchKey, searchKeyword):
     start = start.strftime("%Y.%m.%d")
     end = end.strftime("%Y.%m.%d")
 
     with requests.Session() as sess:
-        login(sess, id, pw)
+        login(sess, account.userid, account.password)
         entries = []
-        if stage  == 'toreturn' or stage == 'toexchange':
+        if stage in ('cancel', 'refund', 'exchange'):
             # Could be improved with grequests(asynchronous)
             statuses = {
-                # 'RETURN_DONE', 'RETURN_REJECT'):
-                'toreturn': ('RETURN_REQUEST', 'COLLECTING', 'COLLECT_DONE'),
-                'toexchange': ('EXCHANGE_REQUEST', 'COLLECTING',
+                'cancel': ('CANCEL_REQUEST', 'CANCELING',),
+                        #    'CANCEL_DONE', 'CANCEL_REJECT'),
+                'refund': ('RETURN_REQUEST', 'COLLECTING', 'COLLECT_DONE'),
+                # ('RETURN_DONE', 'RETURN_REJECT'):
+                'exchange': ('EXCHANGE_REQUEST', 'COLLECTING',
                                'COLLECT_DONE', 'EXCHANGE_REDELIVERING',
                                'EXCHANGE_DONE', 'EXCHANGE_REJECT',)}
-            type = 'RETURN_REQUEST' if stage == 'toreturn' else 'EXCHANGE_REQUEST'
             for status in statuses[stage]:
-                params = get_search_condition2(type, status, start, end)
+                params = get_search_condition2(stage, status, start, end)
                 resp = sess.get(search_urls[stage],
                           headers=headers, params=params)
                 cur_entries = json.loads(resp.text)\
@@ -202,14 +230,127 @@ def search(id, pw, stage, site, start, end,
                 for entry in cur_entries:
                     entry["status"] = status
                 entries += cur_entries
-            return entries
 
         else:
             data = get_search_condition1(
                 stage, start, end, searchKey, searchKeyword)
             resp = sess.post(search_urls[stage],
                       headers=headers, data=data)
-            return json.loads(resp.text)["htReturnValue"]["pagedResult"]["content"]
+            entries = json.loads(resp.text)["htReturnValue"]["pagedResult"]["content"]
+        attach_order_info(entries, account, stage)
+        return entries
+
+
+
+def neworder_confirm(id, pw, site, order_info):
+    with requests.Session() as sess:
+        login(sess, id, pw)
+        headers = {
+            'origin': 'https://sell.storefarm.naver.com',
+            # 'accept-encoding': 'gzip, deflate, br',
+            'x-requested-with': 'XMLHttpRequest',
+            'accept-language': 'en-US,en;q=0.8,ko;q=0.6',
+            # 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
+            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            # 'accept': '*/*',
+            'charset': 'utf-8',
+            'referer': 'https://sell.storefarm.naver.com/o/n/sale/delivery', ###
+            'authority': 'sell.storefarm.naver.com',
+        }
+        data = [    # order_info ex) '2017091223865501,2017091223863221,2017091223860081'
+          ('productOrderIds', order_info),
+          ('path', 'placeOrder'),
+          ('onlyValidation', 'true'),
+          ('validationSuccess', 'true'),
+        ]
+        resp = sess.post('https://sell.storefarm.naver.com/o/sale/delivery/placeOrder',
+                  headers=headers, data=data)
+        return j['htReturnValue']['results']
+
+
+def deliver_confirm(id, pw, orders):
+    with requests.Session() as sess:
+        login(sess, id, pw)
+        headers = {
+            'origin': 'https://sell.storefarm.naver.com',
+            # 'accept-encoding': 'gzip, deflate, br',
+            'x-requested-with': 'XMLHttpRequest',
+            'accept-language': 'en-US,en;q=0.8,ko;q=0.6',
+            # 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
+            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            # 'accept': '*/*',
+            'charset': 'utf-8',
+            'referer': 'https://sell.storefarm.naver.com/o/n/sale/delivery',
+            'authority': 'sell.storefarm.naver.com',
+        }
+        today = datetime.now().strftime("%Y.%m.%d")
+        data = [('checkValidation', 'true'), ('validationSuccess', 'true')]
+        for idx, (product_id, company, invoice) in enumerate(orders):
+            data += [
+                ('dispatchForms[%d].productOrderId' % idx, product_id),
+                ('dispatchForms[%d].deliveryMethodType' % idx, 'DELIVERY'),
+                ('dispatchForms[%d].searchOrderStatusType' % idx, 'WAITING_DISPATCH'),
+                ('dispatchForms[%d].deliveryCompanyCode' % idx, company),
+                ('dispatchForms[%d].invoicingNo' % idx, invoice),
+                ('dispatchForms[%d].dispatchYmdt' % idx, today),  # Not sure. need to be checked
+            ]
+
+        resp = sess.post('https://sell.storefarm.naver.com/o/sale/delivery/dispatch2',
+                             headers=headers, data=data)
+        return resp
+
+
+def cancel_confirm(id, pw, order_info):
+    with requests.Session() as sess:
+        login(sess, id, pw)
+        headers = {
+            'origin': 'https://sell.storefarm.naver.com',
+            'x-requested-with': 'XMLHttpRequest',
+            'accept-language': 'en-US,en;q=0.8,ko;q=0.6',
+            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'charset': 'utf-8',
+            'referer': 'https://sell.storefarm.naver.com/o/claim/cancel',
+            'authority': 'sell.storefarm.naver.com',
+        }
+        data = [    # order_info ex) '2017091223865501,2017091223863221,2017091223860081'
+          ('productOrderIds', order_info),
+          ('onlyValidation', 'true'),
+          ('validationSuccess', 'true'),
+        ]
+        resp = sess.post('https://sell.storefarm.naver.com/o/claim/cancel/operation/' +
+                         order_info +'/refund',
+                  headers=headers, data=data)
+        return resp
+
+
+def cancel_deliver(account, product_order_id, company, invoice):
+    with requests.Session() as sess:
+        login(sess, account.userid, account.password)
+        headers = {
+            'accept-language': 'en-US,en;q=0.8,ko;q=0.6',
+            'upgrade-insecure-requests': '1',
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'cache-control': 'max-age=0',
+            'authority': 'sell.storefarm.naver.com',
+            'referer': 'https://sell.storefarm.naver.com/o/claim/cancel',
+        }
+        form_url = ('https://sell.storefarm.naver.com/o/claim/cancel/dispatch/' +
+                   product_order_id + '/request')
+        # Response form will be used to authenticate and process return
+        form_resp = sess.get(form_url,
+                             headers=headers)
+        stream = io.StringIO(form_resp.text)
+        form = parse(stream).getroot().xpath('//form')[0]
+        form.fields['cancelDispathArray[0].serviceCompanyCode'] = company
+        form.fields['cancelDispathArray[0].invoiceNo'] = invoice
+        form.fields['cancelDispathArray[0].deliveryMethod'] = 'DELIVERY'
+        today = datetime.now().strftime("%Y.%m.%d")
+        form.fields['cancelDispathArray[0].deliveryYmdt'] = today
+        # form.fields['onlyValidation'] = 'true'   # necessary?
+        url_base = 'https://sell.storefarm.naver.com'
+        resp = sess.post(url_base + form.action, data=dict(form.fields))
+
+        return resp
 #
 # def neworder_confirm(id, pw, site, order_info):
 #     with requests.Session() as sess:
