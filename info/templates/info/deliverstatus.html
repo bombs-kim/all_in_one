@@ -1,0 +1,52 @@
+{% extends "info/info_base.html" %}
+
+{% block title %} 배송중 {% endblock %}
+
+{% block script %}
+<script>
+$(function() {
+     $('#confirm').on('submit', function(e){
+         e.preventDefault();
+     });
+});
+</script>
+{% endblock %}
+
+{% block form_action %}
+#
+{% endblock %}
+
+{% block submit_value %}
+X
+{% endblock %}
+
+{% block custom_fields_label %}
+<th style="color:blue">발송일</th>
+<th style="color:blue">배송상태</th>
+{% endblock %}
+
+{% block custom_fields_esm %}
+<td>{{ entry.TransDate }}</td>
+<td>{{ entry.DeliveryStatus }}</td>
+{% endblock %}
+
+{% block custom_fields_storefarm %}
+<td>{{ entry.PRODUCT_ORDER_DISPATCH_OPERATION_YMDT }}</td>
+<td>{{ entry.ORDER_ORDER_STATUS }}</td>
+{% endblock %}
+
+{% comment %}
+<style>
+    table, td, th{
+        border: 1px solid black;
+        white-space:nowrap;
+    }
+    th{
+        min-width: 110px;
+        text-align: center;
+    }
+    th, td{ padding: 5px; }
+    ul li { display: inline; }
+    select { float: left; }
+</style>
+{% endcomment %}
