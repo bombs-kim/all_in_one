@@ -103,8 +103,9 @@
             {% elif entry.site__ == "STOREFARM" %}
             <tr class="storefarm">
                 <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
-                    value="-/-/-"></td>
-                <td> {{ entry.site__ }}</td>
+                    value="{{ entry.orderInfo__ }}"></td>
+                <td>{{ entry.site__ }}</td>
+                <td>{{ entry.ORDER_ORDER_MEMBER_ID }}</td>
 
                 {% block custom_fields_storefarm %}
                 {% endblock %}
@@ -114,9 +115,15 @@
                 <td>{{ entry.ORDER_MEMBER_TELEPHONE_NO }}</td>
                 <td> - </td>
 
+                {% if entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NAME %}
                 <td>{{ entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NAME | safe}}</td>
                 <td>{{ entry.OPRODUCT_ORDER_PRODUCT_PRODUCT_NO }}</td>
                 <td>{{ entry.OPRODUCT_ORDER_PRODUCT_UNIT_PRICE }}</td>
+                {% else %}
+                <td>{{ entry.PRODUCT_ORDER_DETAIL_PRODUCT_NAME | safe}}</td>
+                <td>{{ entry.PRODUCT_ORDER_DETAIL_PRODUCT_NO }}</td>
+                <td>{{ entry.PRODUCT_ORDER_DETAIL_PRODUCT_PRICE }}</td>
+                {% endif %}
                 <td>{{ entry.PAY_PAY_YMDT }}</td>
                 <td> - </td>
                 <td> {{ entry.ORDER_DELIVERY_FEE_BUNDLE_GROUP_SEQ }} </td>

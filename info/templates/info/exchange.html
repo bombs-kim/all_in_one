@@ -17,7 +17,7 @@
             var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
 
             $.post({
-                    url: "{% url 'info:toexchange_confirm' %}",
+                    url: "{% url 'info:exchange_confirm' %}",
                     data: oinfs + "&" + csrf,
                     success: function(result,status,xhr) {
                         if (result['status'] === "ok"){ alert("배송등록 성공\n" + result['msg']);
@@ -31,7 +31,8 @@
 {% endblock %}
 
 {% block buttons %}
-<input type="submit" id="exchange" style="cursor:pointer" value="교환처리"></input>
+<input type="submit" id="collect" style="cursor:pointer" value="교환수거처리(STOREFARM)"></input>
+<input type="submit" id="exchange" style="cursor:pointer" value="교환품 발송"></input>
 {% endblock %}
 
 
