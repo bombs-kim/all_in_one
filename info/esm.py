@@ -325,4 +325,4 @@ def exchange_confirm(id, pw, site, order_info,
         form.fields['resendCompCode'] = comp
         form.fields['resendInvoiceNo'] = invoice
         resp = sess.post(form.action, data=dict(form.fields))
-        return json.loads(resp.tex
+        return json.loads(resp.text)
