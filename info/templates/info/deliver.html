@@ -15,7 +15,7 @@ $(function() {
                 url: "{% url 'info:deliver_confirm' %}",
                 data: orderInfo_invoice + "&" +  csrf,
                 success: function(result,status,xhr) {
-                    if (result['status'] === "ok"){ alert("배송등록 성공"); location.reload(); }
+                    if (result['status'] === "ok"){ alert("배송등록 성공\n" + result['msg']); location.reload(); }
                     else { alert(result['msg']); location.reload(); }
                 },
         });

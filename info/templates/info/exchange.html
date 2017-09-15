@@ -11,18 +11,34 @@
             $('input:checkbox').not(this).prop('checked', false);
         });
 
+        $('#collect').click(function(e){
+            e.preventDefault();
+            var oinfs = $("input:checked").parents("tr").find("input, select").serialize();
+            var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
+            $.post({
+                    url: "{% url 'info:exchange_collect_done' %}",
+                    data: oinfs + "&" + csrf,
+                    success: function(result,status,xhr) {
+                        if (result['status'] === "ok"){
+                            alert("교환처리 성공\n" + result['msg']); location.reload(); }
+                        else {
+                            alert("교환처리 실패\n" + result['msg']); location.reload(); }
+                    },
+            });
+        });
+
         $('#exchange').click(function(e){
             e.preventDefault();
             var oinfs = $("input:checked").parents("tr").find("input, select").serialize();
             var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
-
             $.post({
                     url: "{% url 'info:exchange_confirm' %}",
                     data: oinfs + "&" + csrf,
                     success: function(result,status,xhr) {
-                        if (result['status'] === "ok"){ alert("배송등록 성공\n" + result['msg']);
-                            location.reload(); }
-                        else { alert(result['msg']); location.reload(); }
+                        if (result['status'] === "ok"){
+                            alert("교환처리 성공\n" + result['msg']); location.reload(); }
+                        else {
+                            alert("교환처리 실패\n" + result['msg']); location.reload(); }
                     },
             });
         });
@@ -73,6 +89,15 @@
 <td>{{ entry.CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE }}</td>
 <td>
     <select name="resendCompCode">
+        <option value="default">택배사 선택</option>
+        <option value="CH1">기타택배</option>
+        <option value="CJGLS">CJ대한통운</option>
+        <option value="EPOST">우체국택배</option>
+        <option value="HANJIN">한진택배</option>
+        <option value="KGB">로젠택배</option>
+        <option value="DONGBU">KG로지스</option>
+        <option value="INNOGIS">gtx로지스</option>
+        <option value="HYUNDAI">롯데택배</option>
     </select>
 </td>
 <td>
@@ -124,5 +149,48 @@ ESM
 <option value=",^범한판토스">범한판토스</option>
 <option value=".^GPS LOGIX">GPS LOGIX</option>
 <option value=":^한의사랑택배">한의사랑택배</option>
+</select>
+
+<select id="ipt_return2" name="deliveryCompany" style="width:375px;height:18px">
+    <option value="default">택배사 선택</option>
+    <option value="CJGLS">CJ대한통운</option>
+    <option value="EPOST">우체국택배</option>
+    <option value="HANJIN">한진택배</option>
+    <option value="KGB">로젠택배</option>
+    <option value="DONGBU">KG로지스</option>
+    <option value="INNOGIS">gtx로지스</option>
+    <option value="HYUNDAI">롯데택배</option>
+    <option value="REGISTPOST">우편등기</option>
+    <option value="DAESIN">대신택배</option>
+    <option value="ILYANG">일양로지스</option>
+    <option value="KDEXP">경동택배</option>
+    <option value="CHUNIL">천일택배</option>
+    <option value="CVSNET">편의점택배</option>
+    <option value="HDEXP">합동택배</option>
+    <option value="DHL">DHL</option>
+    <option value="DHLDE">DHL(독일)</option>
+    <option value="FEDEX">FEDEX</option>
+    <option value="GSMNTON">GSMNTON</option>
+    <option value="WARPEX">WarpEx</option>
+    <option value="WIZWA">WIZWA</option>
+    <option value="EMS">EMS</option>
+    <option value="ACIEXPRESS">ACI</option>
+    <option value="EZUSA">EZUSA</option>
+    <option value="PANTOS">범한판토스</option>
+    <option value="HLCGLOBAL">롯데택배(국제택배)</option>
+    <option value="UPS">UPS</option>
+    <option value="KOREXG">CJ대한통운(국제택배)</option>
+    <option value="TNT">TNT</option>
+    <option value="SWGEXP">성원글로벌</option>
+    <option value="DAEWOON">대운글로벌</option>
+    <option value="USPS">USPS</option>
+    <option value="IPARCEL">i-parcel</option>
+    <option value="KUNYOUNG">건영택배</option>
+    <option value="HPL">한의사랑택배</option>
+    <option value="DADREAM">다드림</option>
+    <option value="SLX">SLX택배</option>
+    <option value="HONAM">호남택배</option>
+    <option value="GSIEXPRESS">GSI익스프레스</option>
+    <option value="CH1">기타택배</option>
 </select>
 {% endcomment %}

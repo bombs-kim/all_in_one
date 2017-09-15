@@ -11,6 +11,22 @@
             $('input:checkbox').not(this).prop('checked', false);
         });
 
+        $('#collect').click(function(e){
+            e.preventDefault();
+            var oinfs = $("input:checked").parents("tr").find("input").serialize();
+            var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
+            $.post({
+                    url: "{% url 'info:refund_collect_done' %}",
+                    data: oinfs + "&" + csrf,
+                    success: function(result,status,xhr) {
+                        if (result['status'] === "ok"){
+                            alert("반품수거 성공\n" + result['msg']); location.reload(); }
+                        else {
+                            alert("반품수거 실패\n" + result['msg']); location.reload(); }
+                    },
+            });
+        });
+
         $('#return').click(function(e){
             e.preventDefault();
 
@@ -18,12 +34,13 @@
             var csrf = $("#confirm input[name='csrfmiddlewaretoken']").serialize();
 
             $.post({
-                    url: "{% url 'info:toreturn_confirm' %}",
+                    url: "{% url 'info:refund_confirm' %}",
                     data: oinfs + "&" + csrf,
                     success: function(result,status,xhr) {
                         if (result['status'] === "ok"){
                             alert("반품등록 성공\n" + result['msg']); location.reload(); }
-                        else { alert(result['msg']); location.reload(); }
+                        else {
+                            alert("반품수거 실패\n" + result['msg']); location.reload(); }
                     },
             });
         });
@@ -32,6 +49,7 @@
 {% endblock %}
 
 {% block buttons %}
+<input type="submit" id="collect" style="cursor:pointer" value="수거완료처리(스토어팜)"></input>
 <input type="submit" id="return" style="cursor:pointer" value="반품처리"></input>
 {% endblock %}
 

@@ -4,13 +4,10 @@ import requests
 import sys
 from datetime import datetime
 from lxml.html import parse, submit_form
-
-from lxml.html import parse, submit_form
 from pprint import pprint
 from scrapy.selector import Selector
 from django.utils import timezone
 
-# js2py.translate_file("storefarm_common_all.js", "storefarm_common_all_trans.py")
 from .storefarm_common_all_trans import storefarm_common_all_trans as store_trans
 
 headers = {
@@ -26,11 +23,34 @@ headers = {
     'referer': 'https://nid.naver.com/nidlogin.login?url=https%3A%2F%2Fsell.storefarm.naver.com%2F%23%2FnaverLoginCallback%3Furl%3Dhttps%253A%252F%252Fsell.storefarm.naver.com%252F%2523%252Fhome%252Fdashboard',
 }
 
-ID = 'bluewhale8202'
-PW = 'k016317'
+def login_normal(sess, account):
+    headers = {
+        'pragma': 'no-cache',
+        'origin': 'https://sell.storefarm.naver.com',
+        'accept-encoding': 'gzip, deflate, br',
+        'x-current-state': 'https://sell.storefarm.naver.com/#/login?url=https:~2F~2Fsell.storefarm.naver.com~2F%23~2Fhome~2Fdashboard',
+        'accept-language': 'en-US,en;q=0.8,ko;q=0.6',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
+        'content-type': 'application/json;charset=UTF-8',
+        'accept': '*/*',
+        'cache-control': 'no-cache',
+        'authority': 'sell.storefarm.naver.com',
+        'referer': 'https://sell.storefarm.naver.com/',
+    }
+    params = (
+        ('url', 'https%3A%2F%2Fsell.storefarm.naver.com%2F%23%2Fhome%2Fdashboard'),
+    )
+    data = {
+        'id': account.userid,
+        'pw': account.password,
+        'url': "https%3A%2F%2Fsell.storefarm.naver.com%2F%23%2Fhome%2Fdashboard",
+    }
+    resp = sess.post('https://sell.storefarm.naver.com/api/login',
+        headers=headers, params=params, data=json.dumps(data))
+
 
 # Returns account number
-def login(sess, id, pw):
+def login_nid(sess, account):
     nhn_resp = sess.get(
         'https://nid.naver.com/login/ext/keys_js2.nhn', headers=headers)
     parts = nhn_resp.text.split(";")
@@ -38,8 +58,8 @@ def login(sess, id, pw):
     sessionkey, keyname, evalue, nvalue = parts[0], parts[1], parts[2], parts[3]
     # Too much computation time spent here
     # Possibly needed to be replaced with a faster method
-    encpw = store_trans.get_encpw(sessionkey, evalue, nvalue, id, pw)
-
+    encpw = store_trans.get_encpw(sessionkey, evalue, nvalue,
+                                  account.userid, account.password)
     data = [
       ('enctp', '1'),       ('encpw', encpw),
       ('encnm', keyname),   ('svctype', '0'),
@@ -58,6 +78,13 @@ def login(sess, id, pw):
               headers=headers, data=data)
     # get NSI cookie
     sess.get('https://sell.storefarm.naver.com/api/login/init', headers=headers)
+
+
+def login(sess, account):
+    if account.site == "STOREFARM":
+        login_normal(sess, account)
+    else:
+        login_nid(sess, account)
 
 """
 Naver Storefarm json response structure
@@ -185,22 +212,8 @@ def attach_order_info(entries, account, stage):
     for entry in entries:
         order_info = '/'.join(str(val) for val in
                               [account.site, account.userid, entry['PRODUCT_ORDER_ID']]  )
-        # if stage == 'neworder':
-        #     order_info += ',' + ','.join(str(entry[key]) for key in
-        #         ('SiteIDValue', 'SellerCustNo') )
-        # elif stage == 'cancel':
-        #     order_info += ',' + ','.join(str(entry[key]) for key in
-        #         ('SiteIdValue', 'SellerCustNo', 'ClaimReasonCode') )
-        # elif stage == 'exchange':
-        #     order_info += ',' + ','.join(str(entry[key]) for key in
-        #         ('SiteIdValue', 'SellerCustNo') )
-        # elif stage == 'refund':
-        #     order_info += ',' + ','.join(str(entry[key]) for key in
-        #         ('SiteIdValue', 'SellerCustNo', 'ReturnInvoiceNo') )
-        #     delivery_comp = str(
-        #         entry['ReturnDeliveryComp']
-        #         ) if entry['ReturnDeliveryComp'] else ''
-        #     order_info += ',' + delivery_comp
+        if stage in ('refund', 'exchange'):
+            order_info += ',' + entry['ORDER_ID']
         entry['orderInfo__'] = order_info
 
 def search(account, stage, start, end,
@@ -209,7 +222,7 @@ def search(account, stage, start, end,
     end = end.strftime("%Y.%m.%d")
 
     with requests.Session() as sess:
-        login(sess, account.userid, account.password)
+        login(sess, account)
         entries = []
         if stage in ('cancel', 'refund', 'exchange'):
             # Could be improved with grequests(asynchronous)
@@ -242,9 +255,9 @@ def search(account, stage, start, end,
 
 
 
-def neworder_confirm(id, pw, site, order_info):
+def neworder_confirm(account, order_info):
     with requests.Session() as sess:
-        login(sess, id, pw)
+        login(sess, account)
         headers = {
             'origin': 'https://sell.storefarm.naver.com',
             # 'accept-encoding': 'gzip, deflate, br',
@@ -265,12 +278,12 @@ def neworder_confirm(id, pw, site, order_info):
         ]
         resp = sess.post('https://sell.storefarm.naver.com/o/sale/delivery/placeOrder',
                   headers=headers, data=data)
-        return j['htReturnValue']['results']
+        return resp
 
 
-def deliver_confirm(id, pw, orders):
+def deliver_confirm(account, orders):
     with requests.Session() as sess:
-        login(sess, id, pw)
+        login(sess, account)
         headers = {
             'origin': 'https://sell.storefarm.naver.com',
             # 'accept-encoding': 'gzip, deflate, br',
@@ -300,9 +313,9 @@ def deliver_confirm(id, pw, orders):
         return resp
 
 
-def cancel_confirm(id, pw, order_info):
+def cancel_confirm(account, order_info):
     with requests.Session() as sess:
-        login(sess, id, pw)
+        login(sess, account)
         headers = {
             'origin': 'https://sell.storefarm.naver.com',
             'x-requested-with': 'XMLHttpRequest',
@@ -312,7 +325,7 @@ def cancel_confirm(id, pw, order_info):
             'referer': 'https://sell.storefarm.naver.com/o/claim/cancel',
             'authority': 'sell.storefarm.naver.com',
         }
-        data = [    # order_info ex) '2017091223865501,2017091223863221,2017091223860081'
+        data = [
           ('productOrderIds', order_info),
           ('onlyValidation', 'true'),
           ('validationSuccess', 'true'),
@@ -325,7 +338,7 @@ def cancel_confirm(id, pw, order_info):
 
 def cancel_deliver(account, product_order_id, company, invoice):
     with requests.Session() as sess:
-        login(sess, account.userid, account.password)
+        login(sess, account)
         headers = {
             'accept-language': 'en-US,en;q=0.8,ko;q=0.6',
             'upgrade-insecure-requests': '1',
@@ -351,73 +364,68 @@ def cancel_deliver(account, product_order_id, company, invoice):
         resp = sess.post(url_base + form.action, data=dict(form.fields))
 
         return resp
-#
-# def neworder_confirm(id, pw, site, order_info):
-#     with requests.Session() as sess:
-#         mID = login(sess, id, pw, site)
-#         data = {
-#             "mID": mID,
-#             "orderInfo": order_info,
-#         }
-#         return sess.post("https://www.esmplus.com/Escrow/Order/OrderCheck",\
-#                          data=data)
-#
-#                                     # return_form_url ex) https://www.esmplus.com/
-#                                     # Escrow/Popup/ReturnProcess?oinf=2008278271,2,111421746,,
-# def toreturn_confirm(id, pw, site, return_form_url):
-#     with requests.Session() as sess:
-#         mID = login(sess, id, pw, site)
-#         form_resp = sess.get(return_form_url,
-#                              headers=headers)
-#         stream = io.StringIO(form_resp.text)
-#         form = parse(stream).getroot().xpath('//form')[0]
-#         form.action = 'https://www.esmplus.com/Escrow/Popup/SetReturnProcess'
-#         form.fields['PickupYN'] = 'Y'
-#         form.fields['RefundYN'] = 'Y'
-#         form.fields['RefundHoldYN'] = 'N'
-#         return sess.post(form.action, data=dict(form.fields))
 
 
+def refund_collect_done(account, order_info):
+    with requests.Session() as sess:
+        login(sess, account)
+        product_order_id, order_id = order_info.split(',')
+        data = [('orderId', order_id),
+          ('productOrderId', product_order_id),
+          ('onlyValidation', 'true'),
+          ('validationSuccess', 'true'),  ]
+        url = 'https://sell.storefarm.naver.com/o/claim/return/' +\
+              product_order_id + '/collectDone'
+        resp = sess.post(url, data=data)
+        return resp
 
-#
-# # 발주/발송관리
-# 'https://sell.storefarm.naver.com/o/n/sale/delivery/json'
-# """
-# 'NEW_ORDERS'
-# 'NEW_ORDERS_DELAYED'
-# 'DELIVERY_READY'
-# 'DELIVERY_READY_DELAYED'
-# """
-#
-# # 배송현황 관리
-# 'https://sell.storefarm.naver.com/o/n/sale/delivery/situation/json'
-# """
-# 'DELIVERING'
-# 'DELIVERED'
-# 'MATTER_ON_DELIVERY' (배송중 문제)
-# 'NORMAL_PURCHASE_DECISION_EXTENSION' (구매확정연장)
-# 'PURCHASE_DECISION_HOLDBACK_ACCEPT' (구매확정보류 접수)
-# 'PURCHASE_DECISION_HOLDBACK_REDELIVERING' (구매확정보류 재배송중)
-# 'PURCHASE_DECISION_REQUEST' (구매확정요청)
-# """
-#
-# # 구매확정 내역
-# 'https://sell.storefarm.naver.com/o/sale/purchaseDecision/json'
-# 'PURCHASE_DECIDED'
-#
-# # 취소관리
-# 'https://sell.storefarm.naver.com/o/claim/cancel/json?summaryInfoType=CANCEL_REQUEST'
-# cancel_summaryInfoType = ('CANCEL_REQUEST', 'CANCEL_DELAYED',
-#                           'CANCEL_DONE')
-#
-# # 반품 관리
-# 'https://sell.storefarm.naver.com/o/claim/return/json?summaryInfoType=RETURN_REQUEST'
-# return_summaryInfoType = ('RETURN_REQUEST', 'RETURN_COLLECTING',
-#                    'RETURN_COLLECT_DONE', 'RETURN_HOLDBACK',
-#                    'RETURN_DELAYED', 'RETURN_AUTO_WAITING_REFUND')
-#
-# # 교환 관리
-# 'https://sell.storefarm.naver.com/o/claim/exchange/json?summaryInfoType=EXCHANGE_REQUEST'
-# exchange_summaryInfoType = ('EXCHANGE_REQUEST','EXCHANGE_COLLECTING',
-#                    'EXCHANGE_COLLECT_DONE', 'EXCHANGE_HOLDBACK',
-#                    'EXCHANGE_DELAYED', 'EXCHANGE_PURCHASE_DECISION_EXTENSION')
+
+def refund_confirm(account, order_info):
+    with requests.Session() as sess:
+        login(sess, account)
+        product_order_id, order_id = order_info.split(',')
+        data = [('orderId', order_id),
+          ('productOrderId', product_order_id),
+          ('onlyValidation', 'true'),
+          ('validationSuccess', 'true'),  ]
+        url = 'https://sell.storefarm.naver.com/o/claim/return/' +\
+              product_order_id + '/refund'
+        resp = sess.post(url, data=data)
+        return resp
+
+
+def exchange_collect_done(account, order_info):
+    with requests.Session() as sess:
+        login(sess, account)
+        product_order_id, order_id = order_info.split(',')
+        data = [
+          ('orderId', order_id),
+          ('productOrderId', product_order_id),
+          ('onlyValidation', 'true'),
+          ('validationSuccess', 'true'),
+        ]
+        url = 'https://sell.storefarm.naver.com/o/claim/exchange/' +\
+              product_order_id + '/collectDone'
+        resp = sess.post(url, data=data)
+        pprint(resp.text)
+        return resp
+
+
+def exchange_confirm(account, order_info, company, invoice):
+    with requests.Session() as sess:
+        login(sess, account)
+        product_order_id, order_id = order_info.split(',')
+        data = [
+          ('invoiceNo', invoice),
+          ('serviceCompanyCode', company),
+          ('deliveryMethod', 'DELIVERY'),
+          ('orderId', order_id),
+          ('claimType', 'undefined'),
+          ('productOrderIds', product_order_id),
+          ('onlyValidation', 'true'),
+          ('validationSuccess', 'true'),
+        ]
+        resp = sess.post(
+            'https://sell.storefarm.naver.com/o/claim/exchange/redeliveryBySelection',
+            data=data)
+        return resp

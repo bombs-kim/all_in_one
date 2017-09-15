@@ -16,19 +16,6 @@ def add_extra_info(entries, account):
         entry['site__'] = account.site
         entry['userid__'] = account.userid
 
-# Special case for ESM exchange
-# This is needed if you need to search on multiple status at the same time
-# def ESM_exchange_search(account_userid, account_password, stage, account_site,
-#                         start, end, searchKey, searchKeyword):
-#     total_entries = []
-#     for searchStatus in ("EP",):
-#         mID, entries = esm.search(
-#             account_userid, account_password, stage, account_site,
-#             start, end, searchKey, searchKeyword, searchStatus)
-#         pprint(type(entries))
-#         total_entries += entries['data']
-#     return mID, {'data': total_entries}
-
 
 from datetime import datetime
 import pytz
@@ -46,20 +33,16 @@ def get_entries(account, stage, start=None, end=None,
             return
         start = (timezone.now()-timezone.timedelta(days=30)).date()
         end = timezone.now().date()
-
     if account.site in ('ESM', 'GMKT', 'AUC'):
         # search = ESM_exchange_search if stage == "exchange" else esm.search
         entries = esm.search(
             account, stage,
             start, end, searchKey, searchKeyword)
-
         for entry in entries:
             # To be used as the sorting criteria
             dt = datetime.strptime(
                 entry['DepositConfirmDate'], "%Y-%m-%d %H:%M:%S")
             entry['_datetime'] = tz.localize(dt)
-
-
     elif account.site == "STOREFARM":
         entries = storefarm.search(
             account, stage,
@@ -207,8 +190,7 @@ def neworder_confirm(request):
         account = accounts.get(userid=seller_id)
         order_info = ",".join(STOREFARM_oders[seller_id])
         resp = storefarm.neworder_confirm(
-            account.userid, account.password,
-            account.site, order_info)
+            account, order_info)
         # Do nothing with resp currently
 
     return JsonResponse({'status':'ok'})
@@ -240,17 +222,13 @@ def deliver_confirm(request):
                 order_number + "," +
                 comps[idx] + "," +
                 companies[comps[idx]] + "," +
-                invs[idx]
-            )
+                invs[idx]  )
         elif site == "STOREFARM":
             STOREFARM_orders[seller_id].append(
                 # tuple type
-                (order_number, comps[idx], invs[idx])
-            )
-
+                (order_number, comps[idx], invs[idx])  )
     accounts = request.user.master.accounts.all()
     success = True
-    msg = ""
     for seller_id in ESM_orders:
         account = accounts.get(userid=seller_id)
         # order_info format: order_number,company_num,company,invoice
@@ -266,21 +244,21 @@ def deliver_confirm(request):
                               # string based failure test. vulnerable to change in the future
         if not j['success'] or '오류' in j['message'] :
             success = False
-        msg += j['message'] + '\n'
+        msg = j['message'] + '\n'
 
     for seller_id in STOREFARM_orders:
         account = accounts.get(userid=seller_id)
         resp = storefarm.deliver_confirm(
-            account.userid, account.password,
+            account,
             STOREFARM_orders[seller_id])
         try:
             j = json.loads(resp.text)
             if not j['bSuccess']:
                 success = False
-                msg += j['htReturnValue']['results'][-1]['message']  + '\n'
+                msg = j['htReturnValue']['results'][-1]['message']  + '\n'
         except:
-            pass
-
+            success = False
+            msg = resp.text
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
@@ -303,7 +281,7 @@ def cancel_confirm(request):
         msg += result
     elif site == 'STOREFARM':
         resp = storefarm.cancel_confirm(
-            account.userid, account.password, order_info)
+            account, order_info)
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
@@ -347,29 +325,84 @@ def cancel_deliver(request):
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
 
+
+@login_required
+@require_POST
+def refund_collect_done(request):
+    site, seller_id, order_info = request.POST['orderInfo'].split("/")
+    accounts = request.user.master.accounts.all()
+    account = accounts.get(userid=seller_id)
+    if not "STOREFARM" in site:
+        return JsonResponse({'status': 'fail',
+             'msg': "스토어팜 제품만 수거완료 처리가 가능합니다"})
+    success = False
+    resp = storefarm.refund_collect_done(account, order_info)
+    try:
+        j = json.loads(resp.text)
+        if j['bSuccess']:
+            success = True
+    except:
+        pass
+    msg = order_info + ': ' + resp.text
+    if not success:
+        return JsonResponse({'status':'fail', 'msg': msg})
+    return JsonResponse({'status':'ok', 'msg': msg})
+
+
 @login_required
 @require_POST
 def refund_confirm(request):
     site, seller_id, order_info = request.POST['orderInfo'].split("/")
     accounts = request.user.master.accounts.all()
     account = accounts.get(userid=seller_id)
-    success = True
     if site == 'ESM':
+        success = True
         # result example
         # {'message': '환불 승인되었습니다.', 'success': True}
         result = esm.refund_confirm(
             account.userid, account.password,
             account.site, order_info)
-        msg = order_info + ': '
+        msg = order_info + ': ' + result['message']
                 # string based failure test. vulnerable to changes in the future
         if not result['success'] or "오류" in result["message"] :
             success = False
-        msg += result['message']
-    else:
-        print("Not implemented")
+    elif "STOREFARM" in site:
+        siccess = False
+        resp = storefarm.refund_confirm(account, order_info)
+        msg = order_info + ':\n' + resp.text
+        try:
+            j = json.loads(resp.text)
+            if j['bSuccess']:
+                success = True
+        except:
+            pass
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
+
+
+@login_required
+@require_POST
+def exchange_collect_done(request):
+    site, seller_id, order_info = request.POST['orderInfo'].split("/")
+    accounts = request.user.master.accounts.all()
+    account = accounts.get(userid=seller_id)
+    if not "STOREFARM" in site:
+        return JsonResponse({'status': 'fail',
+             'msg': "스토어팜 제품만 수거완료 처리가 가능합니다"})
+    success = False
+    resp = storefarm.exchange_collect_done(account, order_info)
+    try:
+        j = json.loads(resp.text)
+        if j['bSuccess']:
+            success = True
+    except:
+        pass
+    msg = order_info + ': ' + resp.text
+    if not success:
+        return JsonResponse({'status':'fail', 'msg': msg})
+    return JsonResponse({'status':'ok', 'msg': msg})
+
 
 
 @login_required
@@ -390,13 +423,21 @@ def exchange_confirm(request):
         result = esm.exchange_confirm(
             account.userid, account.password, account.site,
             order_info, comp, inv)
-        msg = order_info + ': '
+        msg = order_info + ':\n'
                 # string based failure test. vulnerable to changes in the future
         if not result['success'] or "오류" in result["message"] :
             success = False
         msg += result['message']
-    else:
-        print("Not implemented")
+    elif "STOREFARM" in site:
+        success = False
+        resp = storefarm.exchange_confirm(account, order_info, comp, inv)
+        msg = order_info + ':\n' + resp.text
+        try:
+            j = json.loads(resp.text)
+            if j['bSuccess']:
+                success = True
+        except:
+            pass
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
