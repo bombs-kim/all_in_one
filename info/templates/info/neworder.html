@@ -44,3 +44,8 @@ $(function() {
 <td> - </td> {# order info #}
 <td>{{ entry.PRODUCT_ORDER_ID }}</td>    {# different from OrderNo #}
 {% endblock %}
+
+{% block custom_fields_cafe24 %}
+<td> - </td> {# order info #}
+<td>{{ entry.OrderNo }}</td>
+{% endblock %}

@@ -105,7 +105,7 @@
                 <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
                     value="{{ entry.orderInfo__ }}"></td>
                 <td>{{ entry.site__ }}</td>
-                <td>{{ entry.ORDER_ORDER_MEMBER_ID }}</td>
+                <td></td>
 
                 {% block custom_fields_storefarm %}
                 {% endblock %}
@@ -133,6 +133,34 @@
                 <td>{{ entry.PRODUCT_ORDER_ADDRESS_NAME }}</td>
                 <td>{{ entry.PRODUCT_ORDER_ADDRESS_TELNO1 }}</td>
                 <td>{{ entry.PRODUCT_ORDER_ADDRESS_TELNO2 }}</td>
+            </tr>
+            {% elif entry.site__ == "CAFE24" %}
+            <tr class="cafe24">
+                <td><input style="margin: 0 8px 0" type="checkbox" name="orderInfo"
+                    value=""></td>
+                <td> {{ entry.site__ }}</td>
+                <td> 관리자ID </td>
+
+                {% block custom_fields_cafe24 %}
+                {% endblock %}
+
+                <td>{{ entry.BuyerID }}</td>
+                <td>이름</td>
+                <td>전화번호1</td>
+                <td>전화번호2</td>
+
+                <td>{{ entry.Product }}</td>
+                <td></td>
+                <td>{{ entry.ActualPrice }}</td>
+                <td>{{ entry.OrderDate }}</td>
+                <td> - </td>
+                <td> - </td>
+
+                <td> 배송타입 </td>
+                <td style="min-width:200px">{{ entry.Addr }}</td>
+                <td> 수취인이름 </td>
+                <td> 수취인번호1 </td>
+                <td> 수취인번호2 </td>
             </tr>
             {% endif %}
             {% endfor %}

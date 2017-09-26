@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from pprint import pprint
-from . import esm, storefarm
+from . import esm, storefarm, cafe24
 from .forms import SearchForm
 from master.models import Master
 
@@ -74,6 +74,17 @@ def get_entries(account, stage, start=None, end=None,
                     entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE'] = fromtimestamp(
                         entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE']
                         ).strftime('%Y-%m-%d %H:%M:%S')
+    elif account.site == "CAFE24":
+        entries = cafe24.search(
+            account, stage,
+            start, end, searchKey, searchKeyword)
+        for entry in entries:
+            print(entry['OrderDate'])
+            dt = datetime.strptime((entry['OrderDate']),
+                                   "%Y-%m-%d %H:%M:%S")
+            dt = tz.localize(dt)
+            entry['_datetime'] = dt
+
     add_extra_info(entries, account)
     return entries
 
