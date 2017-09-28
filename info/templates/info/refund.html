@@ -57,18 +57,36 @@
 <th style="color:blue">주문번호</th>
 <th style="color:blue">반품상태</th>
 <th style="color:blue">반품신청일</th>
+<th style="color:blue">환불액(적립금/예치금)(C)</th>
+<th style="color:blue">적립금/예치금/포인트 환불(C)</th>
+<th style="color:blue">환불계좌(C)</th>
 {% endblock %}
 
 {% block custom_fields_esm %}
 <td>{{ entry.OrderNo }}</td>
 <td>{{ entry.StatusName }}</td>
 <td>{{ entry.ClaimRegDate }}</td>
-
-
+<td>-</td>
+<td>-</td>
+<td>-</td>
 {% endblock %}
 
 {% block custom_fields_storefarm %}
 <td>{{ entry.PRODUCT_ORDER_ID }}</td>    {# different from OrderNo #}
 <td>{{ entry.CLAIM_STATUS }}</td>
 <td>{{ entry.CLAIM_REQUEST_OPERATION_YMDT_RETURN }}</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+{% endblock %}
+
+{% block custom_fields_cafe24 %}
+<td>{{ entry.OrderNo }}</td>
+<td>{{ entry.Status }}</td>
+<td>{{ entry.ClaimDate }}</td>
+<td>{{ entry.RefundedAmount }}</td>
+<td>{{ entry.ReserveAndDepositRefundedAmount }}/{{ entry.PointRefundedAmount }}</td>
+<td>{{ entry.RefundBankAccount }}</td>
+
+{{ entry.ActualPrice }}
 {% endblock %}
