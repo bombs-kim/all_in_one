@@ -80,7 +80,7 @@ def get_entries(account, stage, start=None, end=None,
             start, end, searchKey, searchKeyword)
         for entry in entries:
             print(entry['OrderDate'])
-            dt = datetime.strptime((entry['OrderDate']),
+            dt = datetime.strptime((entry['OrderDate'][:19]),
                                    "%Y-%m-%d %H:%M:%S")
             dt = tz.localize(dt)
             entry['_datetime'] = dt
@@ -175,16 +175,20 @@ def exchange(request):
 @login_required
 @require_POST
 def neworder_confirm(request):
-    ESM_orders = defaultdict(list)
-    STOREFARM_oders = defaultdict(list)
     orders = request.POST.getlist('orderInfo')
+
+    ESM_orders = defaultdict(list)
+    STOREFARM_orders = defaultdict(list)
+    CAFE24_orders = defaultdict(list)
 
     for order in orders:
         site, seller_id, order_info = order.split("/")
         if site == "ESM":
             ESM_orders[seller_id].append(order_info)
         elif site == "STOREFARM":
-            STOREFARM_oders[seller_id].append(order_info)
+            STOREFARM_orders[seller_id].append(order_info)
+        elif site == "CAFE24":
+            CAFE24_orders[seller_id].append(order_info)
 
     accounts = request.user.master.accounts.all()
 
@@ -197,12 +201,19 @@ def neworder_confirm(request):
             account.site, order_info)
         # Do nothing with resp currently
 
-    for seller_id in STOREFARM_oders:
+    for seller_id in STOREFARM_orders:
         account = accounts.get(userid=seller_id)
-        order_info = ",".join(STOREFARM_oders[seller_id])
+        order_info = ",".join(STOREFARM_orders[seller_id])
         resp = storefarm.neworder_confirm(
             account, order_info)
         # Do nothing with resp currently
+
+    for seller_id in CAFE24_orders:
+        account = accounts.get(userid=seller_id)
+        resp = cafe24.neworder_confirm(
+            account, CAFE24_orders[seller_id])
+        # Do nothing with resp currently
+
 
     return JsonResponse({'status':'ok'})
 
@@ -225,6 +236,7 @@ def deliver_confirm(request):
 
     ESM_orders = defaultdict(list)
     STOREFARM_orders = defaultdict(list)
+    CAFE24_orders = defaultdict(list)
 
     for idx, order in enumerate(orders):
         site, seller_id, order_number = order.split("/")
@@ -238,6 +250,10 @@ def deliver_confirm(request):
             STOREFARM_orders[seller_id].append(
                 # tuple type
                 (order_number, comps[idx], invs[idx])  )
+        elif site == "CAFE24":
+            CAFE24_orders[seller_id].append(
+                (order_number, comps[idx], invs[idx])  )
+
     accounts = request.user.master.accounts.all()
     success = True
     for seller_id in ESM_orders:
@@ -270,6 +286,14 @@ def deliver_confirm(request):
         except:
             success = False
             msg = resp.text
+
+    for seller_id in CAFE24_orders:
+        account = accounts.get(userid=seller_id)
+        resp = cafe24.deliver_confirm(
+            account,
+            CAFE24_orders[seller_id])
+        msg = resp.text
+
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})

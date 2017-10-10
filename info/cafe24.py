@@ -4,6 +4,9 @@ from lxml.html import parse, submit_form
 from datetime import datetime
 from scrapy import Selector
 from pprint import pprint
+from selenium import webdriver
+from selenium.webdriver.support.ui import Select
+
 
 
 headers = {
@@ -924,17 +927,16 @@ def _search(account, stage, start, end,
             ('mallId', account.userid) )
         resp = sess.post(search_urls[stage],
              headers=headers, data=data)
-
-    return extract_entries(resp, stage)
+    return extract_entries(resp, account, stage)
 
 def search(account, stage, start, end,
            searchKey='', searchKeyword=''):
-   if stage == 'refund':
-       return _search(account, 'refund_return',
-                      start, end, searchKey, searchKeyword) +\
-              _search(account, 'refund_refund',
+    if stage == 'refund':
+        return _search(account, 'refund_return',
+            start, end, searchKey, searchKeyword) +\
+            _search(account, 'refund_refund',
                         start, end, searchKey, searchKeyword)
-   return _search(account, stage, start, end, searchKey, searchKeyword)
+    return _search(account, stage, start, end, searchKey, searchKeyword)
 
 
 def strip_selector(sel):
@@ -945,7 +947,7 @@ def strip_selector(sel):
         ret += " "
     return ret.strip()
 
-def extract_entries(response, stage):
+def extract_entries(response, account, stage):
     sel = Selector(text=response.text)
     entries = []
     if stage == 'neworder':
@@ -957,8 +959,11 @@ def extract_entries(response, stage):
             entry['OrderDate'] = order_date[:order_date.find('(')].strip()
             entry['OrderNo'] = strip_selector(tds[2])
             entry['BuyerID'] = tds[3].xpath('span/text()')[0].extract()
-            # 묶음선택 4
-            # some checkbox 5
+            # entry['묶음선택'] = tds[4]...
+            # entry['OrderInfo'] = "\n".join(
+            #     tds[5].xpath('./input[@name]/@value')[i].extract() for i in range(5))
+            entry['orderInfo__'] = 'CAFE24/' + account.userid + '/'
+            entry['orderInfo__'] += tds[5].xpath('./input[@name="om_info[]"]/@value')[0].extract()
             entry['Supplier'] = strip_selector(tds[6])
             entry['Product'] = strip_selector(tds[7])[19:]
             entry['Quantity'] = strip_selector(tds[8])
@@ -979,7 +984,8 @@ def extract_entries(response, stage):
             entry['OrderNo'] = strip_selector(tds[2])
             entry['BuyerID'] = tds[3].xpath('span/text()')[0].extract()
             # 묶음선택 4
-            # some checkbox 5
+            entry['orderInfo__'] = 'CAFE24/' + account.userid + '/'
+            entry['orderInfo__'] += tds[5].xpath('./input[@name="chk_id[]"]/@value')[0].extract()
             # 운송장정보 6
             entry['DeliveryFee'] = tds[7].xpath(".//input/@value")[0].extract()  # 처음에 무조건 0으로 되어있는 듯 보임
             entry['Supplier'] = strip_selector(tds[8])
@@ -1062,11 +1068,80 @@ def extract_entries(response, stage):
     return entries
 
 
+def neworder_confirm(account, orders):
+    with requests.Session() as sess:
+        login(sess, account)
+        data = []
+        for order in orders:
+            data.append(("om_info[]", order))
+        return sess.post("https://truetech02.cafe24.com/admin/php/s_new/"
+                         "product_prepare_list_a.php?shipped_flag=1", data=data)
+
+
+def deliver_confirm(account, orders):
+    with requests.Session() as sess:
+        login(sess, account)
+        data = []
+        for oinf, comp, inv in orders:
+            data += [
+                ('chk_id[]', oinf),
+                ('sc_info[]', comp),
+                ('invoice_no[]', inv),
+                ('invoice_no_om[]', ''),
+                ('sc_code[]', ''),
+                ('delvtype[]', 'A'),
+                ('shipp_shop_no[]', '1'),
+                ('delivery_binding_type[]', 'N'),
+                ('oldDlvCode[]', '0001'),
+                ('ship_fee[]', '0')]
+        return sess.post('https://truetech02.cafe24.com/'
+                         'admin/php/s/shipped_begin_a.php?keyType=om_no',
+                         data=data)
+
+
+def cancel_confirm(account, order_id):
+    with requests.Session() as sess:
+        login(sess, account)
+
+        form_url = ('https://truetech02.cafe24.com/admin/php/s_new/order_cancel_handling.php'
+                    # ex) order_id=20171010-0000126
+                    '?order_id=' + order_id + '&menu_no=76')
+
+        driver = webdriver.PhantomJS()
+        for cookie in sess.cookies:
+            if cookie.domain[0] != '.':
+                cookie.domain = '.' + cookie.domain
+            driver.add_cookie({
+                'name': cookie.name,
+                'value': cookie.value,
+                'path': '/',
+                'domain': cookie.domain
+            })
+        driver.get(form_url)
+        cancel = driver.find_element_by_xpath('//*[@id="eCancelAccept"]')
+        cancel.click()
+
+        select = Select(
+            driver.find_element_by_xpath('//*[@id="QA_cancel4"]/div[2]/table/tbody/tr[1]/td/select')
+            )
+        select.select_by_index(1) # 고객변심
+
+        textbox = driver.find_element_by_xpath('//*[@id="reason"]')
+        textbox.send_keys("some text")
+
+        confirm = driver.find_element_by_xpath('//*[@id="eSubmit"]')
+        # PhantomJS does not support switching to alert
+        # so make driver automatically accept all alerts
+        driver.execute_script("window.confirm = function(msg) { return true; }");
+        confirm.click()
+        return None
+
 # from datetime import datetime, timedelta
-# a= lambda:None
-# a.userid = "truetech02"
-# a.password="true3251"
+# account = lambda:None
+# account.userid = "truetech02"
+# account.password="true3251"
+# order_id = '20171010-0000141'
 # start = datetime.now() - timedelta(days=10)
 # end = datetime.now()
-# stage = 'refund_refund'
-# tds1, tds2 = search(a, stage, start, end)
+# stage = 'neworder'
+# tds = search(a, stage, start, end)
