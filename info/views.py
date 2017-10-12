@@ -79,7 +79,6 @@ def get_entries(account, stage, start=None, end=None,
             account, stage,
             start, end, searchKey, searchKeyword)
         for entry in entries:
-            print(entry['OrderDate'])
             dt = datetime.strptime((entry['OrderDate'][:19]),
                                    "%Y-%m-%d %H:%M:%S")
             dt = tz.localize(dt)
@@ -299,6 +298,7 @@ def deliver_confirm(request):
     return JsonResponse({'status':'ok', 'msg': msg})
 
 
+# 취소 확정
 @login_required
 @require_POST
 def cancel_confirm(request):
@@ -317,11 +317,14 @@ def cancel_confirm(request):
     elif site == 'STOREFARM':
         resp = storefarm.cancel_confirm(
             account, order_info)
+    elif site == 'CAFE24':
+        cafe24.cancel_confirm(account, order_info)
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
 
 
+# 취소 반려 및 배송처리
 @login_required
 @require_POST
 def cancel_deliver(request):
@@ -361,6 +364,7 @@ def cancel_deliver(request):
     return JsonResponse({'status':'ok', 'msg': msg})
 
 
+# 수거완료 처리(스토어팜 전용)
 @login_required
 @require_POST
 def refund_collect_done(request):
@@ -390,8 +394,8 @@ def refund_confirm(request):
     site, seller_id, order_info = request.POST['orderInfo'].split("/")
     accounts = request.user.master.accounts.all()
     account = accounts.get(userid=seller_id)
+    success = True
     if site == 'ESM':
-        success = True
         # result example
         # {'message': '환불 승인되었습니다.', 'success': True}
         result = esm.refund_confirm(
@@ -411,6 +415,9 @@ def refund_confirm(request):
                 success = True
         except:
             pass
+    elif site == "CAFE24":
+        cafe24.refund_confirm(account, order_info)
+        msg = ''
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})
@@ -444,8 +451,8 @@ def exchange_collect_done(request):
 @require_POST
 def exchange_confirm(request):
     site, seller_id, order_info = request.POST['orderInfo'].split("/")
-    comp = request.POST['resendCompCode']  # 택배회사코드
-    inv = request.POST['invoiceNo']
+    comp = request.POST.get('resendCompCode')  # 택배회사코드
+    inv = request.POST.get('invoiceNo')
 
     accounts = request.user.master.accounts.all()
     account = accounts.get(userid=seller_id)
@@ -473,6 +480,9 @@ def exchange_confirm(request):
                 success = True
         except:
             pass
+    elif site == "CAFE24":
+        cafe24.exchange_confirm(account, order_info)
+        msg = ''
     if not success:
         return JsonResponse({'status': 'fail', 'msg': msg})
     return JsonResponse({'status':'ok', 'msg': msg})

@@ -58,6 +58,7 @@
 
 
 {% block custom_fields_label %}
+<td style="color:blue">주문번호</td>
 <td style="color:blue">상태</td>
 <td style="color:blue">취소요청일</td>
 <td style="color:blue">취소사유</td>
@@ -67,6 +68,7 @@
 
 
 {% block custom_fields_esm %}
+<td></td>
 <td>{{ entry.StatusName }}</td>
 <td>{{ entry.ClaimRegDate }}</td>
 <td>{{ entry.ClaimReason }}</td>
@@ -96,6 +98,7 @@
 
 
 {% block custom_fields_storefarm %}
+<td></td>
 <td>{{ entry.CLAIM_STATUS_CANCEL }}</td>
 <td>{{ entry.CLAIM_REQUEST_OPERATION_YMDT_CANCEL }}</td>
 <td>{{ entry.CLAIM_REQUEST_REASON_CANCEL }}</td>
@@ -122,6 +125,7 @@
 
 
 {% block custom_fields_cafe24 %}
+<td>{{ entry.OrderNo }}</td>
 <td>{{ entry.Status }}</td>
 <td>{{ entry.ClaimDate }}</td>
 <td> X </td>

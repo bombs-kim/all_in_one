@@ -8,7 +8,6 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 
 
-
 headers = {
     'origin': 'https://eclogin.cafe24.com',
     'accept-encoding': 'gzip, deflate, br',
@@ -59,8 +58,7 @@ def login(sess, account):
         ('loan_type', ''),
         ('addsvc_suburl', ''),
         ('is_multi', 'F'),
-        ('appID', ''),
-        ]
+        ('appID', ''),  ]
     index_resp = sess.post('https://eclogin.cafe24.com/Shop/index.php',
                   headers=headers, data=data)
 
@@ -90,13 +88,6 @@ cafe24_search_type_from_key = {
     'BN': 'o_name',
     'BI': 'member_id',
     }
-
-# get_storefarm_status_from_stage = {
-#     'neworder': 'NEW_ORDER',
-#     'deliver': 'PLACE_ORDER',
-#     'deliver_release': 'PLACE_ORDER_RELEASE',
-# }
-
 
 # SMS info part should be editied
 def get_search_condition(stage, start, end, searchKey, searchKeyword):
@@ -338,8 +329,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
           ('radio10', 'on'),
           ('radio11', 'on'),
           ('radio12', 'on'),
-          ('radio100', 'on'),
-        ]
+          ('radio100', 'on'),  ]
     elif stage == 'deliverstatus':
         data = [
             ('realclick', 'T'),
@@ -448,8 +438,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
             ('radio10', 'on'),
             ('radio11', 'on'),
             ('radio12', 'on'),
-            ('radio100', 'on'),
-        ]
+            ('radio100', 'on'),  ]
     elif stage == 'cancel':
         data = [
             ('realclick', 'T'),
@@ -559,8 +548,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
             ('radio10', 'on'),
             ('radio11', 'on'),
             ('radio12', 'on'),
-            ('radio100', 'on'),
-        ]
+            ('radio100', 'on'),  ]
     elif stage == 'exchange':
         data = [
             ('realclick', 'T'),
@@ -675,8 +663,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
             ('radio10', 'on'),
             ('radio11', 'on'),
             ('radio12', 'on'),
-            ('radio100', 'on'),
-        ]
+            ('radio100', 'on'),  ]
     elif stage == 'refund_return':
         data = [
             ('realclick', 'T'),
@@ -793,8 +780,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
             ('radio10', 'on'),
             ('radio11', 'on'),
             ('radio12', 'on'),
-            ('radio100', 'on'),
-        ]
+            ('radio100', 'on'),  ]
     elif stage == 'refund_refund':
         data = [
             ('realclick', 'T'),
@@ -900,8 +886,7 @@ def get_search_condition(stage, start, end, searchKey, searchKeyword):
             ('radio10', 'on'),
             ('radio11', 'on'),
             ('radio12', 'on'),
-            ('radio100', 'on'),
-        ]
+            ('radio100', 'on'),  ]
     return data
 
 search_urls = {
@@ -918,7 +903,6 @@ def _search(account, stage, start, end,
             searchKey, searchKeyword):
     start = start.strftime("%Y-%m-%d")
     end = end.strftime("%Y-%m-%d")
-
     with requests.Session() as sess:
         login(sess, account)
         data = get_search_condition(
@@ -929,6 +913,11 @@ def _search(account, stage, start, end,
              headers=headers, data=data)
     return extract_entries(resp, account, stage)
 
+
+# Simple wrapper function for _search.
+# 'refund' stage in specially dealt with because
+# for cafe24 'refund' stage is divided into two smaller stages
+# which are 'refund_return'(반품수거) and 'refund_return'(환불)
 def search(account, stage, start, end,
            searchKey='', searchKeyword=''):
     if stage == 'refund':
@@ -947,6 +936,8 @@ def strip_selector(sel):
         ret += " "
     return ret.strip()
 
+
+# Extract entries from raw html
 def extract_entries(response, account, stage):
     sel = Selector(text=response.text)
     entries = []
@@ -959,7 +950,7 @@ def extract_entries(response, account, stage):
             entry['OrderDate'] = order_date[:order_date.find('(')].strip()
             entry['OrderNo'] = strip_selector(tds[2])
             entry['BuyerID'] = tds[3].xpath('span/text()')[0].extract()
-            # entry['묶음선택'] = tds[4]...
+            # entry['묶음선택'] = tds[4]
             # entry['OrderInfo'] = "\n".join(
             #     tds[5].xpath('./input[@name]/@value')[i].extract() for i in range(5))
             entry['orderInfo__'] = 'CAFE24/' + account.userid + '/'
@@ -983,10 +974,10 @@ def extract_entries(response, account, stage):
             entry['OrderDate'] = order_date[:order_date.find('(')].strip()
             entry['OrderNo'] = strip_selector(tds[2])
             entry['BuyerID'] = tds[3].xpath('span/text()')[0].extract()
-            # 묶음선택 4
+            # 묶음선택 tds[4]
             entry['orderInfo__'] = 'CAFE24/' + account.userid + '/'
             entry['orderInfo__'] += tds[5].xpath('./input[@name="chk_id[]"]/@value')[0].extract()
-            # 운송장정보 6
+            # 운송장정보 tds[6]
             entry['DeliveryFee'] = tds[7].xpath(".//input/@value")[0].extract()  # 처음에 무조건 0으로 되어있는 듯 보임
             entry['Supplier'] = strip_selector(tds[8])
             entry['Product'] = strip_selector(tds[9])[19:]
@@ -1021,8 +1012,10 @@ def extract_entries(response, account, stage):
             tds = tr.xpath("./td")
             entry = {}
             entry['ClaimDate'] = strip_selector(tds[2])
-            entry['OrderDate'] = entry['ClaimDate']  # 카페24 취소메뉴에선 주문일이 나오지 않기 때문에 일단 취소일로 대체
-            entry['OrderNo'] = strip_selector(tds[3])
+            # Cafe24 취소메뉴에선 주문일이 따로 나오지 않기 때문에 일단 취소일로 주문일을 대체
+            entry['OrderDate'] = entry['ClaimDate']
+            entry['OrderNo'] = strip_selector(tds[3]).split(' ')[0][:-3]
+            entry['orderInfo__'] = 'CAFE24/' + account.userid + '/' + entry['OrderNo']
             entry['BuyerID'] = tds[4].xpath('span/text()')[0].extract()
             entry['Product'] = strip_selector(tds[5].xpath('.//a[2]'))
             entry['Quantity'] = strip_selector(tds[6])
@@ -1037,11 +1030,13 @@ def extract_entries(response, account, stage):
             entry = {}
             entry['ClaimDate'] = tds[2].xpath('./text()')[0].extract().strip()
             entry['OrderDate'] = entry['ClaimDate']
-            entry['OrderNo'] = strip_selector(tds[3])
+            entry['OrderNo'] = strip_selector(tds[3]).split(' ')[0][:-3]
+            entry['orderInfo__'] = 'CAFE24/' + account.userid + '/' + entry['OrderNo']
             entry['BuyerID'] = tds[4].xpath('span/text()')[0].extract()
             entry['Product'] = strip_selector(tds[5].xpath('.//a[2]'))
             entry['Quantity'] = strip_selector(tds[6])
-            entry['Status'] = tds[8].xpath('./text()')[0].extract().strip()
+            status_idx = 7 if stage == 'exchange' else 8
+            entry['Status'] = tds[status_idx].xpath('./text()')[0].extract().strip()
             entries.append(entry)
     elif stage == 'refund_refund':
         trs = sel.xpath("//table[@id='searchResultList']/tbody[contains(@class,'center')]/tr")
@@ -1052,6 +1047,7 @@ def extract_entries(response, account, stage):
             entry['OrderDate'] = strip_selector(tds1[2])
             entry['ClaimDate'] = strip_selector(tds1[3])
             entry['OrderNo'] = tds1[4].xpath('./a//text()')[0].extract()
+            entry['orderInfo__'] = 'CAFE24/' + account.userid + '/' + entry['OrderNo']
             entry['ClaimNo'] = tds1[4].xpath('./p//text()')[0].extract()
             entry['BuyerID'] = tds1[5].xpath('span/text()')[0].extract()
             entry['Quantity'] = strip_selector(tds1[6])
@@ -1102,11 +1098,52 @@ def deliver_confirm(account, orders):
 def cancel_confirm(account, order_id):
     with requests.Session() as sess:
         login(sess, account)
-
-        form_url = ('https://truetech02.cafe24.com/admin/php/s_new/order_cancel_handling.php'
-                    # ex) order_id=20171010-0000126
+        form_url = ('https://' + account.domain + '.cafe24.com/'
+                    'admin/php/s_new/order_cancel_handling.php'
+                             # order_id ex) 20171010-0000126
                     '?order_id=' + order_id + '&menu_no=76')
+        driver = webdriver.PhantomJS()
+        # webdriver is not compatible with requests.Session instance
+        # so we need to manually inject cookie information into driver
+        for cookie in sess.cookies:
+            if cookie.domain[0] != '.':
+                cookie.domain = '.' + cookie.domain
+            driver.add_cookie({
+                'name': cookie.name,
+                'value': cookie.value,
+                'path': '/',
+                'domain': cookie.domain}  )
+        driver.get(form_url)
+        cancel = driver.find_element_by_xpath('//*[@id="eCancelAccept"]')
+        cancel.click()
+        select = Select(
+            driver.find_element_by_xpath(
+                '//*[@id="QA_cancel4"]/div[2]/table/tbody/tr[1]/td/select')  )
+        driver.save_screenshot("img2.png")
+        # 취소사유를 고객변심으로 설정.
+        # To do: 취소사유를 선택 가능하도록 변경.
+        select.select_by_index(1)
+        textbox = driver.find_element_by_xpath('//*[@id="reason"]')
+        # To do: 세부 취소사유를 직접 입력 가능하도록 변경.
+        textbox.send_keys("some text")
+        confirm = driver.find_element_by_xpath('//*[@id="eSubmit"]')
+        # PhantomJS does not support switching to alert
+        # so make driver automatically accept all alerts
+        driver.execute_script("window.confirm = function(msg) { return true; }");
+        confirm.click()
+        # To do: 취소처리 성공 여부 판별
 
+
+# 환불 확인
+# Cafe24에서는 환불을 '반품'과 '환불' 두 단계로 나누어서 처리하는 것이 가능함.
+# 하지만 현재 refund_confirm는 두 단계를 한번에 처리.
+def refund_confirm(account, order_id):
+    with requests.Session() as sess:
+        login(sess, account)
+        form_url = ('https://' + account.domain + '.cafe24.com/'
+                    'admin/php/shop1/s_new/order_return_handling.php'
+                             # order_id ex) 20171010-0000126
+                    '?order_id=' + order_id + '&menu_no=78')
         driver = webdriver.PhantomJS()
         for cookie in sess.cookies:
             if cookie.domain[0] != '.':
@@ -1115,27 +1152,89 @@ def cancel_confirm(account, order_id):
                 'name': cookie.name,
                 'value': cookie.value,
                 'path': '/',
-                'domain': cookie.domain
-            })
+                'domain': cookie.domain}  )
         driver.get(form_url)
-        cancel = driver.find_element_by_xpath('//*[@id="eCancelAccept"]')
-        cancel.click()
-
+        driver.save_screenshot("img1.png")
+        accept = driver.find_element_by_xpath(
+            '//*[@id="QA_returnProduct1"]/div[4]/a[1]')
+        accept.click()
         select = Select(
-            driver.find_element_by_xpath('//*[@id="QA_cancel4"]/div[2]/table/tbody/tr[1]/td/select')
-            )
-        select.select_by_index(1) # 고객변심
-
+            driver.find_element_by_xpath(
+                '//*[@id="returnAccept"]/div[2]/table/tbody/tr[1]/td[1]/select')  )
+        # 환불사유를 고객변심으로 설정.
+        # To do: 환불사유를 선택 가능하도록 변경.
+        select.select_by_index(1)
         textbox = driver.find_element_by_xpath('//*[@id="reason"]')
+        # To do: 세부 환불사유를 직접 입력 가능하도록 변경.
         textbox.send_keys("some text")
-
+        check = driver.find_element_by_xpath(
+            '//*[@id="returnAccept"]//input[@name="simple_pickup"]')
+        check.click()
         confirm = driver.find_element_by_xpath('//*[@id="eSubmit"]')
         # PhantomJS does not support switching to alert
         # so make driver automatically accept all alerts
         driver.execute_script("window.confirm = function(msg) { return true; }");
         confirm.click()
-        return None
+        # To do: 환불처리 성공 여부 판별
 
+# 교환 확인
+# Cafe24의 경우 교환시 교환 배송지 입력이 필요하지 않음.
+def exchange_confirm(account, order_id):
+    with requests.Session() as sess:
+        login(sess, account)
+        form_url = ('https://' + account.domain + '.cafe24.com/'
+                    'admin/php/s_new/order_exchange_handling.php'
+                             # order_id ex) 20171010-0000126
+                    '?order_id=' + order_id + '&menu_no=77')
+        driver = webdriver.PhantomJS()
+        for cookie in sess.cookies:
+            if cookie.domain[0] != '.':
+                cookie.domain = '.' + cookie.domain
+            driver.add_cookie({
+                'name': cookie.name,
+                'value': cookie.value,
+                'path': '/',
+                'domain': cookie.domain}  )
+        driver.get(form_url)
+        add_to_exchange = driver.find_element_by_xpath(
+            '//*[@id="addProductExchange2"]')
+        add_to_exchange.click()
+        driver.save_screenshot("img1.png")
+        # !!! To do: 현재는 교환상품이 1개 일 것을 가정함
+        # 상품이 여러개일 경우 chekcbox 처리 로직 구현 필요
+        check = driver.find_element_by_xpath(
+            '//*[@id="exchangeProducts"]/table/tbody/tr/td[1]/input')
+        check.click()
+
+        accept = driver.find_element_by_xpath(
+            '//*[@id="eExchangeAccept"]')
+        accept.click()
+
+        driver.save_screenshot("img2.png")
+
+        select = Select(
+            driver.find_element_by_xpath(
+                '//*[@id="returnAccept"]/div[2]/table/tbody/tr[1]/td[1]/select')  )
+        # 교환사유를 고객변심으로 설정.
+        # To do: 교환사유를 선택 가능하도록 변경.
+        select.select_by_index(1)
+        textbox = driver.find_element_by_xpath('//*[@id="reason"]')
+        # To do: 세부 환불사유를 직접 입력 가능하도록 변경.
+        textbox.send_keys("some text")
+
+        # check = driver.find_element_by_xpath(
+        #     '//*[@id="returnAccept"]//input[@name="simple_pickup"]')
+        # check.click()
+        driver.save_screenshot("img4.png")
+        confirm = driver.find_element_by_xpath('//*[@id="eSubmit"]')
+        # PhantomJS does not support switching to alert
+        # so make driver automatically accept all alerts
+        driver.execute_script("window.confirm = function(msg) { return true; }");
+        confirm.click()
+        # To do: 환불처리 성공 여부 판별
+
+
+# TEST
 # from datetime import datetime, timedelta
 # account = lambda:None
 # account.userid = "truetech02"
