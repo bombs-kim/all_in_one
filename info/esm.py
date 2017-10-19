@@ -16,12 +16,11 @@ headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
     'Cache-Control': 'max-age=0',
-    # 'Referer': 'https://www.esmplus.com/Member/SignIn/LogOn?ReturnValue=-7',
     'Connection': 'keep-alive',
-    # 'X-Requested-With': 'XMLHttpRequest'
 }
 
-# Returns account number
+# Set login cookie for the session received and
+# returns mID, which will be used for subsequent tasks
 def login(sess, id, pw, site):
     login_data = [
         ('Password', pw),
@@ -46,7 +45,8 @@ def login(sess, id, pw, site):
     menu_resp = sess.get('https://www.esmplus.com/Escrow/Order/NewOrder',
         headers=headers, params=params)
     sel = Selector(text=menu_resp.text)
-    return sel.xpath("//span[@id='divSellerAcc']//option[1]/@value")[0].extract()  # vulnerable
+    # vulnerable
+    return sel.xpath("//span[@id='divSellerAcc']//option[1]/@value")[0].extract()
 
 
 def get_search_condition(stage, start, end, searchKey, searchKeyword):
@@ -183,9 +183,10 @@ search_urls = {
 }
 
 
-# Used for confirming
+# Attach an attribut named orderInfo to entries.
+# orderInfo will be used for confirming
 def attach_order_info(entries, account, stage):
-    # SiteIDValue and SiteIdValue are two different keys
+    # Warning: SiteIDValue and SiteIdValue are two different keys
     for entry in entries:
         order_info = '/'.join(str(val) for val in
                               [account.site, account.userid, entry['OrderNo']]  )
@@ -230,11 +231,14 @@ def search(account, stage, start, end,
         resp = sess.post(search_urls[stage],
                   headers=_headers, data=data)
     entries = json.loads(resp.text)['data']
-    # for entry in entries:
-    #     entry['mID'] = mID
-
     attach_order_info(entries, account, stage)
     return entries
+
+
+################################  To do  #######################################
+# Input and return types of the follwoing functions(ex. neworder_confirm)
+# are not consistent. Need to be refactored to receive only account(not id, pw)
+# and to have one return type, say, pased JSON data
 
 
 def neworder_confirm(id, pw, site, order_info):
@@ -281,6 +285,18 @@ def cancel_deliver(account, order_info, comp, comp_name, inv):
         return "\n".join(sel.xpath("//tbody//td//text()").extract())
 
 
+###############################  Note  #########################################
+# Confirming refund and exchange is not an simple task. A user of esmplus is
+# supposed to open up a new dialog window to proceed to begin with. I mimiced
+# this process by parsing the response without resorting to web browsers.
+# Becaused the dialog response is complicated it's almost infeasible to
+# parse it manually. So I parsed the dialog with lxml.html.parse function
+# and made subsequent requests to actually confirm a refund or exchange.
+
+#  order_info format
+# OrderNo,SiteIdValue,SellerCustNo,returnInvoiceNo,returnDeliveryComp
+# ex) 2008278271,2,111421746,,
+
 
 def refund_confirm(id, pw, site, order_info):
     """  order_info format
@@ -291,7 +307,6 @@ def refund_confirm(id, pw, site, order_info):
         mID = login(sess, id, pw, site)
         form_url = 'https://www.esmplus.com/Escrow/Popup/ReturnProcess'
         form_url += "?oinf=" + order_info
-        # Response form will be used to authenticate and process return
         form_resp = sess.get(form_url,
                              headers=headers)
         stream = io.StringIO(form_resp.text)

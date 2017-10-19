@@ -23,6 +23,10 @@ headers = {
     'referer': 'https://nid.naver.com/nidlogin.login?url=https%3A%2F%2Fsell.storefarm.naver.com%2F%23%2FnaverLoginCallback%3Furl%3Dhttps%253A%252F%252Fsell.storefarm.naver.com%252F%2523%252Fhome%252Fdashboard',
 }
 
+
+# There are two login functions to be used for seller ID login and naver ID login.
+
+# Naver ID login
 def login_normal(sess, account):
     headers = {
         'pragma': 'no-cache',
@@ -49,7 +53,13 @@ def login_normal(sess, account):
         headers=headers, params=params, data=json.dumps(data))
 
 
-# Returns account number
+# Sellor ID login.
+# Naver tries to encrypt login credentials with a weird RSA algorithm, which
+# adds no security to the login process. Encryption details can be found
+# in the storefarm_common_all.js in the directory where this file is located.
+# I commented out unused parts. storefarm_common_all_trans is a module that was
+# translated from storefar_common_all.js.
+
 def login_nid(sess, account):
     nhn_resp = sess.get(
         'https://nid.naver.com/login/ext/keys_js2.nhn', headers=headers)
