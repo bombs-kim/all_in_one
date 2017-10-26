@@ -439,3 +439,35 @@ def exchange_confirm(account, order_info, company, invoice):
             'https://sell.storefarm.naver.com/o/claim/exchange/redeliveryBySelection',
             data=data)
         return resp
+
+
+from datetime import datetime
+def fromtimestamp(epoch, tz):
+    return datetime.fromtimestamp(epoch//1000, tz=tz)
+
+
+def attach_local_datetime(entries, tz, stage):
+    for entry in entries:
+        if stage == 'deliverstatus':
+            dt1 = fromtimestamp(entry['PRODUCT_ORDER_PAY_YMDT'], tz)
+            entry['datetime__'] = dt1
+            entry['PRODUCT_ORDER_PAY_YMDT'] = dt1.strftime('%Y-%m-%d %H:%M:%S')
+            dt2 = fromtimestamp(entry['PRODUCT_ORDER_DISPATCH_OPERATION_YMDT'], tz)
+            entry['PRODUCT_ORDER_DISPATCH_OPERATION_YMDT'] =\
+                              dt2.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            dt = fromtimestamp(entry['PAY_PAY_YMDT'], tz)
+            entry['datetime__'] = dt
+            entry['PAY_PAY_YMDT'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+            if stage == 'cancel':
+                entry['CLAIM_REQUEST_OPERATION_YMDT_CANCEL'] = fromtimestamp(
+                    entry['CLAIM_REQUEST_OPERATION_YMDT_CANCEL'],
+                    tz).strftime('%Y-%m-%d %H:%M:%S')
+            elif stage == 'refund':
+                entry['CLAIM_REQUEST_OPERATION_YMDT_RETURN'] = fromtimestamp(
+                    entry['CLAIM_REQUEST_OPERATION_YMDT_RETURN'],
+                    tz).strftime('%Y-%m-%d %H:%M:%S')
+            elif stage == 'exchange':
+                entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE'] = fromtimestamp(
+                    entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE'],
+                    tz).strftime('%Y-%m-%d %H:%M:%S')

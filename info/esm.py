@@ -5,6 +5,7 @@ import sys
 from lxml.html import parse, submit_form
 from pprint import pprint
 from scrapy import Selector
+from datetime import datetime
 from django.utils import timezone
 
 headers = {
@@ -234,6 +235,13 @@ def search(account, stage, start, end,
     attach_order_info(entries, account, stage)
     return entries
 
+
+# Attach local datetime that would be used as the sorting criteria
+def attach_local_datetime(entries, tz):
+    for entry in entries:
+        dt = datetime.strptime(
+            entry['DepositConfirmDate'], "%Y-%m-%d %H:%M:%S")
+        entry['datetime__'] = tz.localize(dt)
 
 ################################  To do  #######################################
 # Input and return types of the follwoing functions(ex. neworder_confirm)

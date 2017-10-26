@@ -1234,6 +1234,14 @@ def exchange_confirm(account, order_id):
         # To do: 환불처리 성공 여부 판별
 
 
+def attach_local_datetime(entries, tz):
+    for entry in entries:
+        dt = datetime.strptime((entry['OrderDate'][:19]),
+                               "%Y-%m-%d %H:%M:%S")
+        dt = tz.localize(dt)
+        entry['datetime__'] = dt
+
+
 # TEST
 # from datetime import datetime, timedelta
 # account = lambda:None

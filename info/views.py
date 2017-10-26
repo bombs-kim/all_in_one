@@ -11,17 +11,15 @@ from .forms import SearchForm
 from master.models import Master
 
 
-def add_extra_info(entries, account):
-    for entry in entries:
-        entry['site__'] = account.site
-        entry['userid__'] = account.userid
-
-
 from datetime import datetime
 import pytz
 tz = pytz.timezone("Asia/Seoul")
-def fromtimestamp(epoch):
-    return datetime.fromtimestamp(epoch//1000, tz=tz)
+
+
+def attach_meta_info(entries, account):
+    for entry in entries:
+        entry['site__'] = account.site
+        entry['userid__'] = account.userid
 
 
 def get_entries(account, stage, start=None, end=None,
@@ -34,60 +32,32 @@ def get_entries(account, stage, start=None, end=None,
         start = (timezone.now()-timezone.timedelta(days=30)).date()
         end = timezone.now().date()
     if account.site in ('ESM', 'GMKT', 'AUC'):
-        # search = ESM_exchange_search if stage == "exchange" else esm.search
         entries = esm.search(
             account, stage,
             start, end, searchKey, searchKeyword)
-        for entry in entries:
-            # To be used as the sorting criteria
-            dt = datetime.strptime(
-                entry['DepositConfirmDate'], "%Y-%m-%d %H:%M:%S")
-            entry['_datetime'] = tz.localize(dt)
+        # Attach datetime__ attribute that would be used as the sorting criteria
+        # get_form_and_entries function will use that attribute. Note that
+        # sorting entries based on some datetime attribute is still experimental
+        # and there are many cadidate times that could be used to sort entries.
+        # ex) Order date vs Deliver date
+        esm.attach_local_datetime(entries, tz)
     elif account.site == "STOREFARM":
         entries = storefarm.search(
             account, stage,
             start, end, searchKey, searchKeyword)
-        # entries = entries["htReturnValue"]["pagedResult"]["content"]
-        for entry in entries:
-            if stage == 'deliverstatus':
-                dt1 = fromtimestamp(entry['PRODUCT_ORDER_PAY_YMDT'])
-                # To be used as the sorting criteria
-                entry['_datetime'] = dt1
-                entry['PRODUCT_ORDER_PAY_YMDT'] = dt1.strftime('%Y-%m-%d %H:%M:%S')
-                dt2 = fromtimestamp(entry['PRODUCT_ORDER_DISPATCH_OPERATION_YMDT'])
-                entry['PRODUCT_ORDER_DISPATCH_OPERATION_YMDT'] =\
-                                  dt2.strftime('%Y-%m-%d %H:%M:%S')
-            else:
-                dt = fromtimestamp(entry['PAY_PAY_YMDT'])
-                # To be used as the sorting criteria
-                entry['_datetime'] = dt
-                entry['PAY_PAY_YMDT'] = dt.strftime('%Y-%m-%d %H:%M:%S')
-                if stage == 'cancel':
-                    entry['CLAIM_REQUEST_OPERATION_YMDT_CANCEL'] = fromtimestamp(
-                        entry['CLAIM_REQUEST_OPERATION_YMDT_CANCEL']
-                        ).strftime('%Y-%m-%d %H:%M:%S')
-                elif stage == 'refund':
-                    entry['CLAIM_REQUEST_OPERATION_YMDT_RETURN'] = fromtimestamp(
-                        entry['CLAIM_REQUEST_OPERATION_YMDT_RETURN']
-                        ).strftime('%Y-%m-%d %H:%M:%S')
-                elif stage == 'exchange':
-                    entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE'] = fromtimestamp(
-                        entry['CLAIM_REQUEST_OPERATION_YMDT_EXCHANGE']
-                        ).strftime('%Y-%m-%d %H:%M:%S')
+        storefarm.attach_local_datetime(entries, tz, stage)
     elif account.site == "CAFE24":
         entries = cafe24.search(
             account, stage,
             start, end, searchKey, searchKeyword)
-        for entry in entries:
-            dt = datetime.strptime((entry['OrderDate'][:19]),
-                                   "%Y-%m-%d %H:%M:%S")
-            dt = tz.localize(dt)
-            entry['_datetime'] = dt
-
-    add_extra_info(entries, account)
+        cafe24.attach_local_datetime(entries, tz)
+    attach_meta_info(entries, account)
     return entries
 
 
+# Getting a form and getting entries are two different tasks. But we cannot
+# separte those two tasks and write a different function for each because
+# they are dependent.
 def get_form_and_entries(request, accounts, stage):
     entries = []
     if request.method == 'POST':
@@ -105,7 +75,7 @@ def get_form_and_entries(request, accounts, stage):
         search_form = SearchForm()
         for account in accounts:
             entries += get_entries(account, stage)
-    entries.sort(key=lambda a: a['_datetime'])
+    entries.sort(key=lambda a: a['datetime__'])
     return search_form, entries
 
 
