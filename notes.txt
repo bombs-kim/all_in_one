@@ -9,7 +9,7 @@ ex)구매자가 휴대폰 소액결제를 했는데 결제액 납부가 미납�
 
 
 <ESM javascript files locations>
-setOrderConfirmYn,
+setOrderConfirmYn, 
 CheckRowSelet,
 GeneralDeliveryEvents.TransProcess
 
